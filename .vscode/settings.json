@@ -1,0 +1,17 @@
+{
+    "sqltools.connections": [
+        {
+            "pgOptions": {
+                "ssl": {
+                    "rejectUnauthorized": true
+                }
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "driver": "PostgreSQL",
+            "name": "Railway_Management",
+            "connectString": "postgresql://neondb_owner:npg_d7O2aRnPVTKJ@ep-long-hill-aorliegh.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+        }
+    ]
+}
