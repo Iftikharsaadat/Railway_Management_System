@@ -1,4 +1,4 @@
-TRUNCATE station, route, route_station, train, fare_rate RESTART IDENTITY CASCADE;
+TRUNCATE station, route, route_station, train RESTART IDENTITY CASCADE;
 
 INSERT INTO station (station_name, city) VALUES
 ('Dhaka (Kamalapur)', 'Dhaka'),        -- 1
