@@ -1,4 +1,6 @@
 -- 1. Station
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 CREATE TABLE station (
     station_id SERIAL PRIMARY KEY,
     station_name VARCHAR(100) NOT NULL,
@@ -19,7 +21,7 @@ CREATE TABLE route_station (
     sequence_no INT NOT NULL,
     arrival_time TIME,
     departure_time TIME,
-    distance_km NUMERIC NOT NULL DEFAULT 0,
+    distance_km NUMERIC(6, 2) NOT NULL DEFAULT 0,
     PRIMARY KEY (route_id, station_id)
 );
 
@@ -27,7 +29,8 @@ CREATE TABLE route_station (
 CREATE TABLE train (
     train_id SERIAL PRIMARY KEY,
     train_name VARCHAR(100) NOT NULL,
-    route_id INT NOT NULL REFERENCES route(route_id)
+    route_id INT NOT NULL REFERENCES route(route_id),
+    UNIQUE (route_id)
 );
 
 -- 5. Coach
@@ -36,7 +39,7 @@ CREATE TABLE coach (
     train_id INT NOT NULL REFERENCES train(train_id),
     coach_name VARCHAR(50) NOT NULL,
     seats INT NOT NULL,
-    type VARCHAR(50) NOT NULL
+    type VARCHAR(20) NOT NULL
 );
 
 -- 6. Seat
@@ -50,9 +53,9 @@ CREATE TABLE seat (
 
 -- 7. FareRate
 CREATE TABLE fare_rate (
-    seat_type VARCHAR(50) PRIMARY KEY,
-    rate_per_km NUMERIC NOT NULL,
-    base_fare NUMERIC NOT NULL DEFAULT 0
+    seat_type VARCHAR(20) PRIMARY KEY,
+    rate_per_km NUMERIC(6, 2) NOT NULL,
+    base_fare NUMERIC(6, 2) NOT NULL DEFAULT 0
 );
 
 -- 8. Account
@@ -61,7 +64,8 @@ CREATE TABLE account (
     nid VARCHAR(20) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    phone CHAR(11) NOT NULL
+    phone CHAR(11) NOT NULL UNIQUE,
+    role VARCHAR(20) NOT NULL DEFAULT 'passenger'
 );
 
 -- 9. Schedule
@@ -83,7 +87,8 @@ CREATE TABLE train_tracking (
     actual_time TIMESTAMP,
     delay_minutes INT DEFAULT 0,
     coordinates VARCHAR(100),
-    status VARCHAR(50)
+    status VARCHAR(50),
+    UNIQUE (schedule_id, station_id)
 );
 
 -- 11. Ticket
@@ -116,7 +121,8 @@ CREATE TABLE payment (
     amount DECIMAL(10, 2) NOT NULL,
     method VARCHAR(50),
     status VARCHAR(20) DEFAULT 'pending',
-    paid_at TIMESTAMP
+    paid_at TIMESTAMP,
+    UNIQUE (ticket_id)
 );
 
 -- 14. SeatLock
@@ -131,3 +137,16 @@ CREATE TABLE seat_lock (
     from_seq INT NOT NULL,
     to_seq INT NOT NULL
 );
+
+CREATE INDEX idx_coach_train ON coach(train_id);
+CREATE INDEX idx_seat_coach ON seat(coach_id);
+CREATE INDEX idx_ticket_schedule ON ticket(schedule_id);
+
+CREATE INDEX no_overlapping_confirmed_seats
+    ON ticket_seat
+    USING gist (seat_id, schedule_id, int4range(from_seq, to_seq));
+
+CREATE INDEX no_overlapping_active_locks
+    ON seat_lock
+    USING gist (seat_id, schedule_id, int4range(from_seq, to_seq))
+    WHERE (status = 'active');
