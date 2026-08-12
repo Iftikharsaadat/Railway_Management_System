@@ -75,7 +75,8 @@ CREATE TABLE schedule (
     route_id INT NOT NULL REFERENCES route(route_id),
     date DATE NOT NULL,
     starting_time TIME,
-    station_id INT NOT NULL REFERENCES station(station_id)
+    station_id INT NOT NULL REFERENCES station(station_id),
+    UNIQUE (train_id, date)
 );
 
 -- 10. TrainTracking

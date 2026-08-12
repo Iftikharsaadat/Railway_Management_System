@@ -204,3 +204,80 @@ INSERT INTO route_station (route_id, station_id, sequence_no, arrival_time, depa
 (14, 3, 8, '05:30:00', '05:35:00', 372),
 (14, 2, 9, '06:10:00', '06:15:00', 391),
 (14, 1, 10, '06:50:00', '06:50:00', 412);
+
+DO $$
+DECLARE
+    t_record RECORD;
+    c_id INT;
+    c_name TEXT;
+    c_type TEXT;
+    c_seats INT;
+    s_num INT;
+    is_inbound BOOLEAN;
+    dir TEXT;
+BEGIN
+    -- Loop through all existing trains (16 trains total)
+    FOR t_record IN SELECT train_id FROM train ORDER BY train_id LOOP
+        
+        -- Logic: Even train_ids are considered return trips
+        is_inbound := (t_record.train_id % 2 = 0);
+
+        -- Inner loop for 5 coaches: KA, KHA, GA, GHA, UMA
+        FOR coach_index IN 1..5 LOOP
+            
+            -- Assign Name and Type based on index (Matching your check constraint)
+            CASE coach_index
+                WHEN 1 THEN 
+                    c_name := 'KA'; 
+                    -- Trains 1-8 get s_chair, 9-16 get shovan
+                    c_type := CASE WHEN t_record.train_id <= 8 THEN 's_chair' ELSE 'shovan' END;
+                    c_seats := 60;
+                WHEN 2 THEN 
+                    c_name := 'KHA'; c_type := 's_chair'; c_seats := 60;
+                WHEN 3 THEN 
+                    c_name := 'GA';  c_type := 'snigdha'; c_seats := 60;
+                WHEN 4 THEN 
+                    c_name := 'GHA'; c_type := 'f_seat';  c_seats := 33;
+                WHEN 5 THEN 
+                    c_name := 'UMA'; c_type := 'ac_s';    c_seats := 33;
+            END CASE;
+
+            -- Insert the coach
+            INSERT INTO coach (train_id, coach_name, seats, type)
+            VALUES (t_record.train_id, c_name, c_seats, c_type)
+            RETURNING coach_id INTO c_id;
+
+            -- Insert Seats for this coach
+            FOR s_num IN 1..c_seats LOOP
+                -- Direction Logic
+                -- Outbound: 1st half Forward, 2nd half Backward
+                -- Inbound: 1st half Backward, 2nd half Forward
+                IF NOT is_inbound THEN
+                    dir := CASE WHEN s_num <= (c_seats / 2) THEN 'Forward' ELSE 'Backward' END;
+                ELSE
+                    dir := CASE WHEN s_num <= (c_seats / 2) THEN 'Backward' ELSE 'Forward' END;
+                END IF;
+
+                INSERT INTO seat (coach_id, seat_number, direction, reservation_status)
+                VALUES (c_id, c_name || '-' || s_num, dir, 'available');
+            END LOOP;
+        END LOOP;
+    END LOOP;
+END $$;
+
+ALTER TABLE schedule ADD CONSTRAINT unique_train_schedule UNIQUE (train_id, date);
+INSERT INTO schedule (train_id, route_id, date, starting_time, station_id)
+SELECT t.train_id, t.route_id, d.scheduled_date::date, rs.departure_time, rs.station_id
+FROM train t
+JOIN route_station rs ON rs.route_id = t.route_id AND rs.sequence_no = 1
+CROSS JOIN generate_series(CURRENT_DATE, CURRENT_DATE + INTERVAL '30 days', INTERVAL '1 day') AS d(scheduled_date)
+WHERE trim(to_char(d.scheduled_date, 'Day')) != t.off_day OR t.off_day IS NULL;
+
+INSERT INTO train_tracking (schedule_id, station_id, expected_time, status)
+SELECT 
+    s.schedule_id,
+    rs.station_id,
+    (s.date + rs.arrival_time)::timestamp AS expected_time,
+    'on_time'
+FROM schedule s
+JOIN route_station rs ON s.route_id = rs.route_id;
