@@ -10,6 +10,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());//sob request egular moddho diye asbe
 
+// app.use((req, res, next) => {
+//   console.log("---------------------------");
+//   console.log(`RECEIVED: ${req.method} ${req.url}`);
+//   console.log("BODY:", req.body);
+//   next();
+// });
 // Routes
 app.use("/api/auth", authRoutes); //jesob request /api/auth diye asbe segula authroutes er route diye asbe
 
@@ -28,9 +34,10 @@ app.get("/test-db", async (req, res) => {
   }
 });
 //search
+
 app.post("/api/search", async(req, res) =>{
   try {
-    const { from, to, date } = req.body; 
+    // const { from, to, date } = req.body; 
 
     const qTrains = `
       SELECT t.train_name, 
@@ -79,11 +86,23 @@ app.post("/api/search", async(req, res) =>{
   
 });
 
+
 //train details
+
+// app.get("/api/train_details/:train_id", (req, res)=>{
+//   try {
+//     console.log("inside get");
+//     res.json("hello");
+//   } catch (err) {
+//     console.error(err.message);
+    
+//   }
+// })
 app.get("/api/train_details/:train_id", async(req, res)=>{
   try {
     const {train_id} = req.params;
-    const {from, to, date} = req.body;
+    const {from, to, date} = req.query;
+    console.log(req.params);
     const qRoute = `
     SELECT rs.sequence_no, s.station_name
     FROM train t
@@ -92,15 +111,64 @@ app.get("/api/train_details/:train_id", async(req, res)=>{
     WHERE train_id = $1
     `;
 
-    const qSeats = ``;
-    const Route  = await pool.query(qRoute, [train_id]);
-    // const [Route, Seats] = await Promise.all([
-    //   pool.query(qRoute, [train_id]),
-    //   pool.query(qSeats, [])
-    // ]);
-    res.json(Route.rows);
+    const qSeats = `
+    WITH journey_details AS (
+    SELECT 
+        sc.schedule_id,
+        t.route_id,
+        (SELECT sequence_no FROM route_station rs 
+         JOIN station st ON rs.station_id = st.station_id 
+         WHERE st.station_name = $2 AND rs.route_id = t.route_id) as start_seq,
+        (SELECT sequence_no FROM route_station rs 
+         JOIN station st ON rs.station_id = st.station_id 
+         WHERE st.station_name = $4 AND rs.route_id = t.route_id) as end_seq
+    FROM train t
+    JOIN schedule sc ON sc.train_id = t.train_id
+    WHERE t.train_id = $3 AND sc."date" = $1
+    )
+    SELECT 
+        s.seat_id, 
+        s.seat_number, 
+        c.coach_name,
+        CASE 
+            WHEN EXISTS (
+                SELECT 1 FROM ticket_seat ts
+                CROSS JOIN journey_details jd
+                WHERE ts.seat_id = s.seat_id
+                  AND ts.schedule_id = jd.schedule_id
+                  AND int4range(ts.from_seq, ts.to_seq) && int4range(jd.start_seq, jd.end_seq)
+            ) THEN 'booked'
+
+            WHEN EXISTS (
+                SELECT 1 FROM seat_lock sl
+                CROSS JOIN journey_details jd
+                WHERE sl.seat_id = s.seat_id
+                  AND sl.schedule_id = jd.schedule_id
+                  AND sl.status = 'active'
+                  AND sl.expires_at > NOW()
+                  AND int4range(sl.from_seq, sl.to_seq) && int4range(jd.start_seq, jd.end_seq)
+            ) THEN 'pending'
+
+            ELSE 'available'
+        END AS segment_status
+    FROM seat s
+    JOIN coach c ON s.coach_id = c.coach_id
+    CROSS JOIN journey_details jd
+    WHERE c.train_id = $3;
+  `;
+    // const Route  = await pool.query(qRoute, [train_id]);
+
+    const [Route, Seats] = await Promise.all([
+      pool.query(qRoute, [train_id]),
+      pool.query(qSeats, [date, from,train_id,to])
+    ]);
+    res.json({
+      route: Route.rows,
+      seats: Seats.rows
+    });
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
