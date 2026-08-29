@@ -1,48 +1,6 @@
-const express = require("express");
-const cors = require("cors");
-const pool = require("./db");
-require("dotenv").config();
+const pool = require('../db');
 
-const authRoutes = require("./routes/authRoutes"); // import the login and reg route
-const trainRoutes = require("./routes/trainRoutes")
-
-const app = express();
-
-app.use(cors());
-app.use(express.json());//sob request egular moddho diye asbe
-
-// app.use((req, res, next) => {
-//   console.log("---------------------------");
-//   console.log(`RECEIVED: ${req.method} ${req.url}`);
-//   console.log("BODY:", req.body);
-//   next();
-// });
-// Routes
-app.use("/api/auth", authRoutes); //jesob request /api/auth diye asbe segula authroutes er route diye asbe
-
-// Test route
-app.get("/", (req, res) => {
-  res.send("Railway API Running");
-});
-
-app.get("/test-db", async (req, res) => {
-  const pool = require("./db");
-  try {
-    const result = await pool.query("SELECT NOW()");
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-//search
-app.use("/api/trains", trainRoutes);
-
-/*
-app.post("/api/search", async(req, res) =>{
-  try {
-    const { from, to, date } = req.body; 
-
+const findTrainsByRoute = async (from, to, date) => {
     const qTrains = `
       SELECT t.train_name, 
       t.route_id,
@@ -82,34 +40,12 @@ app.post("/api/search", async(req, res) =>{
     const Route = await pool.query(qRoute,[from, to]);
     console.table(Trains.rows);
     console.table(Route.rows);
-    res.json({
-      availableTrains : Trains.rows,
-      availableRoute : Route.rows
-    });
-  } catch (err) {
-    console.error(err.message);
-  }
-  
-});
-*/
-
-//train details
-
-// app.get("/api/train_details/:train_id", (req, res)=>{
-//   try {
-//     console.log("inside get");
-//     res.json("hello");
-//   } catch (err) {
-//     console.error(err.message);
-    
-//   }
-// })
-/*
-app.get("/api/train_details/:train_id", async(req, res)=>{
-  try {
-    const {train_id} = req.params;
-    const {from, to, date} = req.query;
-    console.log(req.params);
+    return{
+        availableTrains: Trains.rows,
+        availableRoute: Route.rows
+    };
+};
+const showTrainDetails = async (train_id, from, to, date) => {
     const qRoute = `
     SELECT rs.sequence_no, s.station_name
     FROM train t
@@ -252,21 +188,11 @@ app.get("/api/train_details/:train_id", async(req, res)=>{
     console.table(Types.rows);
     console.table(Coaches.rows);
     console.table(Seats.rows);
-    res.json({
+    return{
       route: Route.rows,
       types: Types.rows,
       coaches: Coaches.rows,
       seats: Seats.rows
-    });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-*/
-
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    };
+}
+module.exports = {findTrainsByRoute, showTrainDetails};
