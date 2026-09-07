@@ -24,8 +24,8 @@ function Login() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Go to home page
-      navigate("/");
+      // Go to dashboard after login
+      navigate("/dashboard");
     } catch (error) {
       setError(error.message);
     } finally {

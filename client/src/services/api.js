@@ -1,33 +1,4 @@
-// import axios from "axios";
 
-// const api = axios.create({
-// 	baseURL: "http://localhost:5000/api",
-// 	headers: {
-// 		"Content-Type": "application/json",
-// 	},
-// });
-
-// const getErrorMessage = (error) => {
-// 	return error.response?.data?.error || "Something went wrong. Please try again.";
-// };
-
-// export const loginUser = async (phone, password) => {
-// 	try {
-// 		const response = await api.post("/auth/login", { phone, password });
-// 		return response.data;
-// 	} catch (error) {
-// 		throw new Error(getErrorMessage(error));
-// 	}
-// };
-
-// export const registerUser = async (user) => {
-// 	try {
-// 		const response = await api.post("/auth/register", user);
-// 		return response.data;
-// 	} catch (error) {
-// 		throw new Error(getErrorMessage(error));
-// 	}
-// };
 
 
 const API_URL = "http://localhost:5000/api";
@@ -80,6 +51,179 @@ export const registerUser = async (userData) => {
 
   if (!response.ok) {
     throw new Error(data.error || "Registration failed");
+  }
+
+  return data;
+};
+
+// =========================
+// TRAIN SEARCH
+// =========================
+
+
+export const searchTrains = async (from, to, date, token) => {
+  const response = await fetch(`${API_URL}/trains/search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      date,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Train search failed");
+  }
+
+  return data;
+};
+
+
+// =============================
+// ADMIN API FUNCTIONS
+// =============================
+
+export const addStation = async (station_name, city, token) => {
+  const response = await fetch(`${API_URL}/trains/addStation`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      station_name,
+      city,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to add station");
+  }
+
+  return data;
+};
+
+
+export const addRoute = async (
+  start_station_id,
+  end_station_id,
+  stations,
+  token
+) => {
+  const response = await fetch(`${API_URL}/trains/addRoute`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      start_station_id,
+      end_station_id,
+      stations,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to add route");
+  }
+
+  return data;
+};
+
+
+export const addStationToRoute = async (
+  route_id,
+  station_id,
+  sequence_no,
+  arrival_time,
+  departure_time,
+  distance_km,
+  token
+) => {
+  const response = await fetch(`${API_URL}/trains/addStationToRoute`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      route_id,
+      station_id,
+      sequence_no,
+      arrival_time,
+      departure_time,
+      distance_km,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to add station to route");
+  }
+
+  return data;
+};
+
+
+export const addTrain = async (train_name, route_id, token) => {
+  const response = await fetch(`${API_URL}/trains/addTrain`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      train_name,
+      route_id,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to add train");
+  }
+
+  return data;
+};
+
+
+export const addCoach = async (
+  train_id,
+  coach_name,
+  seats,
+  type,
+  token
+) => {
+  const response = await fetch(`${API_URL}/trains/addCoach`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      train_id,
+      coach_name,
+      seats,
+      type,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to add coach");
   }
 
   return data;
