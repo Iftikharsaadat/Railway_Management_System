@@ -4,8 +4,8 @@ const jwt = require("jsonwebtoken");
 
 // POST /api/auth/register
 const register = async (req, res) => {
-  const { nid, name, password ,phone,role} = req.body;
-  const userRole = role || 'passenger';
+  const { nid, name, password, phone } = req.body;
+  const userRole = 'passenger';
 
   if (!nid || !name || !password || !phone) {
     return res.status(400).json({ error: "All fields are required" });

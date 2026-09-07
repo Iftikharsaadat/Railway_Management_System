@@ -1,5 +1,157 @@
 const pool = require('../db');
 
+const addTrain = async (trainName, routeId) => {
+    const result = await pool.query(
+      `INSERT INTO train (train_name, route_id)
+       VALUES ($1, $2)
+       RETURNING train_id, train_name, route_id`,
+      [trainName, routeId]
+    );
+
+    return result.rows[0];
+};
+const addStation = async(station_name,city) => {
+    const result = await pool.query(
+       `INSERT INTO station (station_name, city)
+        VALUES ($1, $2)
+        RETURNING *;`,
+        [station_name, city]
+    );
+    return result.rows[0];
+}
+
+const addRoute = async(start_station_id, end_station_id, stations = []) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const routeResult = await client.query(
+           `INSERT INTO route (start_station_id, end_station_id)
+            VALUES ($1, $2)
+            RETURNING *;`,
+            [start_station_id, end_station_id]
+        );
+
+        const route = routeResult.rows[0];
+        const routeStations = [];
+
+        for (const station of stations) {
+            const stationResult = await client.query(
+               `INSERT INTO route_station
+                (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *;`,
+                [
+                    route.route_id,
+                    station.station_id,
+                    station.sequence_no,
+                    station.arrival_time ?? null,
+                    station.departure_time ?? null,
+                    station.distance_km
+                ]
+            );
+            routeStations.push(stationResult.rows[0]);
+        }
+
+        await client.query('COMMIT');
+        return { route, routeStations };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+const addStationToRoute = async(route_id, station_id, sequence_no, arrival_time, departure_time, distance_km) => {
+    const result = await pool.query(
+       `INSERT INTO route_station
+        (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *;`,
+        [route_id, station_id, sequence_no, arrival_time, departure_time, distance_km]
+    );
+    return result.rows[0];
+}
+
+const addCoach = async(train_id, coach_name, seats, type) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const coachResult = await client.query(
+           `INSERT INTO coach (train_id, coach_name, seats, type)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *;`,
+            [train_id, coach_name, seats, type]
+        );
+
+        const coach = coachResult.rows[0];
+        const seatResult = await client.query(
+           `INSERT INTO seat (coach_id, seat_number, direction, reservation_status)
+            SELECT
+                $1,
+                $2 || '-' || seat_number,
+                CASE
+                    WHEN $3 % 2 = 0 AND seat_number <= $4 / 2.0 THEN 'Backward'
+                    WHEN $3 % 2 = 0 THEN 'Forward'
+                    WHEN seat_number <= $4 / 2.0 THEN 'Forward'
+                    ELSE 'Backward'
+                END,
+                'available'
+            FROM generate_series(1, $4) AS seat_number
+            RETURNING *;`,
+            [coach.coach_id, coach_name, train_id, seats]
+        );
+
+        await client.query('COMMIT');
+        return { coach, seats: seatResult.rows };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+const addSeat = async(coach_id, seat_number, direction, reservation_status) => {
+    const result = await pool.query(
+       `INSERT INTO seat
+        (coach_id, seat_number, direction, reservation_status)
+        VALUES ($1, $2, $3, COALESCE($4, 'available'))
+        RETURNING *;`,
+        [coach_id, seat_number, direction, reservation_status]
+    );
+    return result.rows[0];
+}
+const addTrackingTime = async(schedule_id, station_id, expected_time, status) => {
+    const result = await pool.query(
+       `INSERT INTO train_tracking
+        (schedule_id, station_id, expected_time, status)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *;`,
+        [schedule_id, station_id, expected_time, status]
+    );
+    return result.rows[0];
+}
+const updateTrainTracking = async(coordinates, actual_time, delay_minutes, status, tracking_id) => {
+    const result = await pool.query(
+       `UPDATE train_tracking
+        SET coordinates = $1,
+            actual_time = $2,
+            delay_minutes = $3,
+            status = $4
+        WHERE tracking_id = $5
+        RETURNING *;`,
+        [coordinates, actual_time, delay_minutes, status, tracking_id]
+    );
+    return result.rows[0];
+}
+
+
+
 const findTrainsByRoute = async (from, to, date) => {
     const qTrains = `
       SELECT t.train_name, 
@@ -195,4 +347,15 @@ const showTrainDetails = async (train_id, from, to, date) => {
       seats: Seats.rows
     };
 }
-module.exports = {findTrainsByRoute, showTrainDetails};
+module.exports = {
+    addTrain,
+    addStation,
+    addRoute,
+    addStationToRoute,
+    addCoach,
+    addSeat,
+    addTrackingTime,
+    updateTrainTracking,
+    findTrainsByRoute,
+    showTrainDetails
+};
