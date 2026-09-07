@@ -4,7 +4,7 @@ const pool = require("./db");
 require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes"); // import the login and reg route
-const trainRoutes = require("./routes/trainRoutes")
+const trainRoutes = require("./routes/trainRoutes");
 
 const app = express();
 
