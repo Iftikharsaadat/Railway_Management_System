@@ -1,4 +1,3 @@
--- 1. Station
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 CREATE TABLE station (
@@ -7,16 +6,14 @@ CREATE TABLE station (
     city VARCHAR(100)
 );
 
--- 2. Route
 CREATE TABLE route (
     route_id SERIAL PRIMARY KEY,
     start_station_id INT NOT NULL REFERENCES station(station_id),
     end_station_id INT NOT NULL REFERENCES station(station_id)
 );
 
--- 3. RouteStation
 CREATE TABLE route_station (
-    route_id INT NOT NULL REFERENCES route(route_id),
+    route_id INT NOT NULL REFERENCES route(route_id) ON DELETE CASCADE,
     station_id INT NOT NULL REFERENCES station(station_id),
     sequence_no INT NOT NULL,
     arrival_time TIME,
@@ -25,50 +22,54 @@ CREATE TABLE route_station (
     PRIMARY KEY (route_id, station_id)
 );
 
--- 4. Train
 CREATE TABLE train (
     train_id SERIAL PRIMARY KEY,
     train_name VARCHAR(100) NOT NULL,
     route_id INT NOT NULL REFERENCES route(route_id),
-    UNIQUE (route_id)
+    off_day VARCHAR(20),
+    CONSTRAINT uq_train_route UNIQUE (route_id)
 );
 
--- 5. Coach
 CREATE TABLE coach (
     coach_id SERIAL PRIMARY KEY,
     train_id INT NOT NULL REFERENCES train(train_id),
     coach_name VARCHAR(50) NOT NULL,
     seats INT NOT NULL,
-    type VARCHAR(20) NOT NULL
+    type VARCHAR(20) NOT NULL,
+    CONSTRAINT chk_coach_type CHECK (type IN (
+        'shulov', 'shovan', 's_chair', 'f_seat', 'f_chair',
+        'snigdha', 'f_berth', 'ac_s', 'ac_berth'
+    ))
 );
 
--- 6. Seat
 CREATE TABLE seat (
     seat_id SERIAL PRIMARY KEY,
     coach_id INT NOT NULL REFERENCES coach(coach_id),
     seat_number VARCHAR(10) NOT NULL,
     direction VARCHAR(50),
-    reservation_status VARCHAR(20) DEFAULT 'available'
+    reservation_status VARCHAR(20) DEFAULT 'available',
+    CONSTRAINT chk_seat_reservation_status CHECK (
+        reservation_status IN ('available', 'locked', 'booked')
+    )
 );
 
--- 7. FareRate
 CREATE TABLE fare_rate (
     seat_type VARCHAR(20) PRIMARY KEY,
     rate_per_km NUMERIC(6, 2) NOT NULL,
     base_fare NUMERIC(6, 2) NOT NULL DEFAULT 0
 );
 
--- 8. Account
 CREATE TABLE account (
     account_id SERIAL PRIMARY KEY,
     nid VARCHAR(20) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL,
     phone CHAR(11) NOT NULL UNIQUE,
-    role VARCHAR(20) NOT NULL DEFAULT 'passenger'
+    role VARCHAR(20) NOT NULL DEFAULT 'passenger',
+    CONSTRAINT account_phone_check CHECK (phone ~ '^01[0-9]{9}$'),
+    CONSTRAINT chk_account_role CHECK (role IN ('passenger', 'admin', 'staff'))
 );
 
--- 9. Schedule
 CREATE TABLE schedule (
     schedule_id SERIAL PRIMARY KEY,
     train_id INT NOT NULL REFERENCES train(train_id),
@@ -76,10 +77,9 @@ CREATE TABLE schedule (
     date DATE NOT NULL,
     starting_time TIME,
     station_id INT NOT NULL REFERENCES station(station_id),
-    UNIQUE (train_id, date)
+    CONSTRAINT unique_train_schedule UNIQUE (train_id, date)
 );
 
--- 10. TrainTracking
 CREATE TABLE train_tracking (
     tracking_id SERIAL PRIMARY KEY,
     schedule_id INT NOT NULL REFERENCES schedule(schedule_id) ON DELETE CASCADE,
@@ -89,10 +89,12 @@ CREATE TABLE train_tracking (
     delay_minutes INT DEFAULT 0,
     coordinates VARCHAR(100),
     status VARCHAR(50),
-    UNIQUE (schedule_id, station_id)
+    CONSTRAINT uq_tracking_schedule_station UNIQUE (schedule_id, station_id),
+    CONSTRAINT chk_tracking_status CHECK (
+        status IN ('on_time', 'delayed', 'arrived', 'departed', 'cancelled')
+    )
 );
 
--- 11. Ticket
 CREATE TABLE ticket (
     ticket_id SERIAL PRIMARY KEY,
     schedule_id INT NOT NULL REFERENCES schedule(schedule_id),
@@ -101,10 +103,12 @@ CREATE TABLE ticket (
     status VARCHAR(20) DEFAULT 'pending',
     from_station_id INT NOT NULL REFERENCES station(station_id),
     to_station_id INT NOT NULL REFERENCES station(station_id),
-    UNIQUE (ticket_id, schedule_id)
+    CONSTRAINT uq_ticket_id_schedule UNIQUE (ticket_id, schedule_id),
+    CONSTRAINT chk_ticket_status CHECK (
+        status IN ('pending', 'booked', 'cancelled', 'completed')
+    )
 );
 
--- 12. TicketSeat
 CREATE TABLE ticket_seat (
     ticket_id INT NOT NULL REFERENCES ticket(ticket_id) ON DELETE CASCADE,
     seat_id INT NOT NULL REFERENCES seat(seat_id),
@@ -112,10 +116,15 @@ CREATE TABLE ticket_seat (
     from_seq INT NOT NULL,
     to_seq INT NOT NULL,
     PRIMARY KEY (ticket_id, seat_id),
-    FOREIGN KEY (ticket_id, schedule_id) REFERENCES ticket(ticket_id, schedule_id)
+    FOREIGN KEY (ticket_id, schedule_id) REFERENCES ticket(ticket_id, schedule_id),
+    CONSTRAINT no_overlapping_confirmed_seats
+        EXCLUDE USING gist (
+            seat_id WITH =,
+            schedule_id WITH =,
+            int4range(from_seq, to_seq) WITH &&
+        )
 );
 
--- 13. Payment
 CREATE TABLE payment (
     payment_id SERIAL PRIMARY KEY,
     ticket_id INT NOT NULL REFERENCES ticket(ticket_id),
@@ -123,10 +132,12 @@ CREATE TABLE payment (
     method VARCHAR(50),
     status VARCHAR(20) DEFAULT 'pending',
     paid_at TIMESTAMP,
-    UNIQUE (ticket_id)
+    CONSTRAINT uq_payment_ticket UNIQUE (ticket_id),
+    CONSTRAINT chk_payment_status CHECK (
+        status IN ('pending', 'paid', 'refunded', 'failed')
+    )
 );
 
--- 14. SeatLock
 CREATE TABLE seat_lock (
     lock_id SERIAL PRIMARY KEY,
     seat_id INT NOT NULL REFERENCES seat(seat_id) ON DELETE CASCADE,
@@ -136,18 +147,18 @@ CREATE TABLE seat_lock (
     status VARCHAR(20) DEFAULT 'active',
     schedule_id INT NOT NULL REFERENCES schedule(schedule_id) ON DELETE CASCADE,
     from_seq INT NOT NULL,
-    to_seq INT NOT NULL
+    to_seq INT NOT NULL,
+    CONSTRAINT chk_seat_lock_status CHECK (
+        status IN ('active', 'confirmed', 'expired')
+    ),
+    CONSTRAINT no_overlapping_active_locks
+        EXCLUDE USING gist (
+            seat_id WITH =,
+            schedule_id WITH =,
+            int4range(from_seq, to_seq) WITH &&
+        ) WHERE (status = 'active')
 );
 
 CREATE INDEX idx_coach_train ON coach(train_id);
 CREATE INDEX idx_seat_coach ON seat(coach_id);
 CREATE INDEX idx_ticket_schedule ON ticket(schedule_id);
-
-CREATE INDEX no_overlapping_confirmed_seats
-    ON ticket_seat
-    USING gist (seat_id, schedule_id, int4range(from_seq, to_seq));
-
-CREATE INDEX no_overlapping_active_locks
-    ON seat_lock
-    USING gist (seat_id, schedule_id, int4range(from_seq, to_seq))
-    WHERE (status = 'active');
