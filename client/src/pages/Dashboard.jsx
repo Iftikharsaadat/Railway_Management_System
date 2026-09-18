@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { searchTrains } from "../services/api";
+import { getTrainDetails, searchTrains } from "../services/api";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -13,6 +13,10 @@ function Dashboard() {
   const [date, setDate] = useState("");
 
   const [trains, setTrains] = useState([]);
+  const [selectedTrain, setSelectedTrain] = useState(null);
+  const [details, setDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -48,6 +52,28 @@ function Dashboard() {
     localStorage.removeItem("user");
 
     navigate("/login");
+  };
+
+  const handleDetails = async (train) => {
+    setSelectedTrain(train);
+    setDetails(null);
+    setDetailsError("");
+    setDetailsLoading(true);
+
+    try {
+      const data = await getTrainDetails(
+        train.train_id,
+        from,
+        to,
+        date,
+        token
+      );
+      setDetails(data);
+    } catch (error) {
+      setDetailsError(error.message);
+    } finally {
+      setDetailsLoading(false);
+    }
   };
 
   if (!user || !token) {
@@ -276,9 +302,7 @@ function Dashboard() {
 
             <button
               className="details-button"
-              onClick={() => {
-                alert("Train details page will be added later.");
-              }}
+              onClick={() => handleDetails(train)}
             >
               View Details
             </button>
@@ -293,6 +317,42 @@ function Dashboard() {
 
   </section>
 )}
+
+        {selectedTrain && (
+          <section className="train-details-section">
+            <div className="section-heading">
+              <h2>{selectedTrain.train_name} details</h2>
+              <button className="details-button" onClick={() => setSelectedTrain(null)}>
+                Close
+              </button>
+            </div>
+
+            {detailsLoading && <p>Loading train details...</p>}
+            {detailsError && <div className="dashboard-error">{detailsError}</div>}
+
+            {details && (
+              <>
+                <h3>Route</h3>
+                <p>
+                  {details.route.map((station) => station.station_name).join(" → ")}
+                </p>
+
+                <h3>Coach availability and fares</h3>
+                <div className="train-results">
+                  {details.types.map((type) => (
+                    <div className="train-card" key={type.coach_type}>
+                      <h3>{type.coach_type}</h3>
+                      <p>Fare: {type.price ?? "N/A"}</p>
+                      <p>Available: {type.available_count}</p>
+                      <p>Booked: {type.booked_count}</p>
+                      <p>Pending: {type.pending_count}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+        )}
 
 
         {/* ADMIN PANEL */}

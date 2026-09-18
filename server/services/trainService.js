@@ -1,11 +1,11 @@
 const pool = require('../db');
 
-const addTrain = async (trainName, routeId) => {
+const addTrain = async (trainName, routeId, offDay) => {
     const result = await pool.query(
-      `INSERT INTO train (train_name, route_id)
-       VALUES ($1, $2)
-       RETURNING train_id, train_name, route_id`,
-      [trainName, routeId]
+    `INSERT INTO train (train_name, route_id, off_day)
+     VALUES ($1, $2, $3)
+     RETURNING train_id, train_name, route_id, off_day`,
+    [trainName, routeId, offDay || null]
     );
 
     return result.rows[0];
@@ -154,7 +154,8 @@ const updateTrainTracking = async(coordinates, actual_time, delay_minutes, statu
 
 const findTrainsByRoute = async (from, to, date) => {
     const qTrains = `
-      SELECT t.train_name, 
+    SELECT t.train_id,
+    t.train_name,
       t.route_id,
       rs1.departure_time AS departure_from_source, 
       rs2.arrival_time AS arrival_at_destination

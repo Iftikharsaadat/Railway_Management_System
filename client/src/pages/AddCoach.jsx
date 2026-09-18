@@ -136,21 +136,15 @@ function AddCoach() {
                 Select Coach Type
               </option>
 
-              <option value="AC">
-                AC
-              </option>
-
-              <option value="Non-AC">
-                Non-AC
-              </option>
-
-              <option value="Sleeper">
-                Sleeper
-              </option>
-
-              <option value="Chair">
-                Chair
-              </option>
+              <option value="shulov">Shulov</option>
+              <option value="shovan">Shovan</option>
+              <option value="s_chair">S Chair</option>
+              <option value="f_seat">F Seat</option>
+              <option value="f_chair">F Chair</option>
+              <option value="snigdha">Snigdha</option>
+              <option value="f_berth">F Berth</option>
+              <option value="ac_s">AC Seat</option>
+              <option value="ac_berth">AC Berth</option>
 
             </select>
           </div>

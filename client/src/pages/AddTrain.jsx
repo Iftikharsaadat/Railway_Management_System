@@ -7,6 +7,7 @@ function AddTrain() {
 
   const [trainName, setTrainName] = useState("");
   const [routeId, setRouteId] = useState("");
+  const [offDay, setOffDay] = useState("");
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -28,6 +29,7 @@ function AddTrain() {
       const data = await addTrain(
         trainName,
         Number(routeId),
+        offDay,
         token
       );
 
@@ -41,6 +43,7 @@ function AddTrain() {
 
       setTrainName("");
       setRouteId("");
+      setOffDay("");
 
     } catch (err) {
       setError(err.message);
@@ -99,6 +102,21 @@ function AddTrain() {
               }
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label>Weekly Off Day (optional)</label>
+
+            <select value={offDay} onChange={(e) => setOffDay(e.target.value)}>
+              <option value="">No weekly off day</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+            </select>
           </div>
 
 

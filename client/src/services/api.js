@@ -176,7 +176,7 @@ export const addStationToRoute = async (
 };
 
 
-export const addTrain = async (train_name, route_id, token) => {
+export const addTrain = async (train_name, route_id, off_day, token) => {
   const response = await fetch(`${API_URL}/trains/addTrain`, {
     method: "POST",
     headers: {
@@ -186,6 +186,7 @@ export const addTrain = async (train_name, route_id, token) => {
     body: JSON.stringify({
       train_name,
       route_id,
+      off_day: off_day || null,
     }),
   });
 
@@ -193,6 +194,26 @@ export const addTrain = async (train_name, route_id, token) => {
 
   if (!response.ok) {
     throw new Error(data.error || "Failed to add train");
+  }
+
+  return data;
+};
+
+export const getTrainDetails = async (trainId, from, to, date, token) => {
+  const params = new URLSearchParams({ from, to, date });
+  const response = await fetch(
+    `${API_URL}/trains/train_details/${trainId}?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to load train details");
   }
 
   return data;

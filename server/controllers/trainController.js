@@ -169,13 +169,13 @@ const addTrackingTime = async (req, res) => {
 
 const addTrain = async (req, res) => {
   try {
-    const { train_name: trainName, route_id: routeId } = req.body;
+    const { train_name: trainName, route_id: routeId, off_day: offDay } = req.body;
 
     if (!trainName || !routeId) {
       return res.status(400).json({ error: "train_name and route_id are required" });
     }
 
-    const train = await trainService.addTrain(trainName, routeId);
+    const train = await trainService.addTrain(trainName, routeId, offDay);
     res.status(201).json({ message: "Train added successfully", train });
   } catch (err) {
     console.error("Add Train Error:", err.message);
