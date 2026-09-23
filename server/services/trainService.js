@@ -348,6 +348,508 @@ const showTrainDetails = async (train_id, from, to, date) => {
       seats: Seats.rows
     };
 }
+
+
+const createAdminDeleteError = (message, statusCode = 400) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+
+// =====================================================
+// DELETE TRAIN
+// =====================================================
+
+const deleteTrain = async (trainId) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const trainResult = await client.query(
+      `
+      SELECT train_id, train_name
+      FROM train
+      WHERE train_id = $1
+      FOR UPDATE
+      `,
+      [trainId]
+    );
+
+    if (trainResult.rowCount === 0) {
+      throw createAdminDeleteError("Train not found", 404);
+    }
+
+    // Find schedules belonging to this train
+    const schedules = await client.query(
+      `
+      SELECT schedule_id
+      FROM schedule
+      WHERE train_id = $1
+      `,
+      [trainId]
+    );
+
+    const scheduleIds = schedules.rows.map(
+      (row) => row.schedule_id
+    );
+
+    // Delete payments and tickets belonging to schedules
+    if (scheduleIds.length > 0) {
+
+      await client.query(
+        `
+        DELETE FROM payment
+        WHERE ticket_id IN (
+          SELECT ticket_id
+          FROM ticket
+          WHERE schedule_id = ANY($1::int[])
+        )
+        `,
+        [scheduleIds]
+      );
+
+      await client.query(
+        `
+        DELETE FROM ticket
+        WHERE schedule_id = ANY($1::int[])
+        `,
+        [scheduleIds]
+      );
+
+      // seat_lock and train_tracking use
+      // ON DELETE CASCADE from schedule
+      await client.query(
+        `
+        DELETE FROM schedule
+        WHERE train_id = $1
+        `,
+        [trainId]
+      );
+    }
+
+    // Delete seats belonging to coaches of this train
+    await client.query(
+      `
+      DELETE FROM seat
+      WHERE coach_id IN (
+        SELECT coach_id
+        FROM coach
+        WHERE train_id = $1
+      )
+      `,
+      [trainId]
+    );
+
+    // Delete coaches
+    await client.query(
+      `
+      DELETE FROM coach
+      WHERE train_id = $1
+      `,
+      [trainId]
+    );
+
+    // Finally delete train
+    await client.query(
+      `
+      DELETE FROM train
+      WHERE train_id = $1
+      `,
+      [trainId]
+    );
+
+    await client.query("COMMIT");
+
+    return trainResult.rows[0];
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+};
+
+
+// =====================================================
+// DELETE COACH
+// =====================================================
+
+const deleteCoach = async (coachId) => {
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const coachResult = await client.query(
+      `
+      SELECT coach_id, coach_name
+      FROM coach
+      WHERE coach_id = $1
+      FOR UPDATE
+      `,
+      [coachId]
+    );
+
+    if (coachResult.rowCount === 0) {
+      throw createAdminDeleteError(
+        "Coach not found",
+        404
+      );
+    }
+
+    // Check whether seats from this coach
+    // are already present in ticket_seat
+    const bookedSeats = await client.query(
+      `
+      SELECT 1
+      FROM ticket_seat ts
+      JOIN seat s
+        ON s.seat_id = ts.seat_id
+      WHERE s.coach_id = $1
+      LIMIT 1
+      `,
+      [coachId]
+    );
+
+    if (bookedSeats.rowCount > 0) {
+
+      throw createAdminDeleteError(
+        "Cannot delete this coach because one or more seats have ticket records.",
+        409
+      );
+
+    }
+
+    // seat_lock has ON DELETE CASCADE
+    // from seat
+    await client.query(
+      `
+      DELETE FROM seat
+      WHERE coach_id = $1
+      `,
+      [coachId]
+    );
+
+    // Delete coach
+    await client.query(
+      `
+      DELETE FROM coach
+      WHERE coach_id = $1
+      `,
+      [coachId]
+    );
+
+    await client.query("COMMIT");
+
+    return coachResult.rows[0];
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+};
+
+
+// =====================================================
+// DELETE SCHEDULE
+// =====================================================
+
+const deleteSchedule = async (scheduleId) => {
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const scheduleResult = await client.query(
+      `
+      SELECT
+        schedule_id,
+        train_id,
+        route_id,
+        date
+      FROM schedule
+      WHERE schedule_id = $1
+      FOR UPDATE
+      `,
+      [scheduleId]
+    );
+
+    if (scheduleResult.rowCount === 0) {
+
+      throw createAdminDeleteError(
+        "Schedule not found",
+        404
+      );
+
+    }
+
+    // Delete payments first
+    await client.query(
+      `
+      DELETE FROM payment
+      WHERE ticket_id IN (
+        SELECT ticket_id
+        FROM ticket
+        WHERE schedule_id = $1
+      )
+      `,
+      [scheduleId]
+    );
+
+    // Delete tickets
+    await client.query(
+      `
+      DELETE FROM ticket
+      WHERE schedule_id = $1
+      `,
+      [scheduleId]
+    );
+
+    // train_tracking and seat_lock
+    // use ON DELETE CASCADE
+    await client.query(
+      `
+      DELETE FROM schedule
+      WHERE schedule_id = $1
+      `,
+      [scheduleId]
+    );
+
+    await client.query("COMMIT");
+
+    return scheduleResult.rows[0];
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+};
+
+
+// =====================================================
+// DELETE ROUTE
+// =====================================================
+
+const deleteRoute = async (routeId) => {
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const routeResult = await client.query(
+      `
+      SELECT
+        route_id,
+        start_station_id,
+        end_station_id
+      FROM route
+      WHERE route_id = $1
+      FOR UPDATE
+      `,
+      [routeId]
+    );
+
+    if (routeResult.rowCount === 0) {
+
+      throw createAdminDeleteError(
+        "Route not found",
+        404
+      );
+
+    }
+
+    // Check whether a train is using this route
+    const trainResult = await client.query(
+      `
+      SELECT
+        train_id,
+        train_name
+      FROM train
+      WHERE route_id = $1
+      LIMIT 1
+      `,
+      [routeId]
+    );
+
+    if (trainResult.rowCount > 0) {
+
+      throw createAdminDeleteError(
+        `Cannot delete route ${routeId} because train "${trainResult.rows[0].train_name}" uses it. Delete the train first.`,
+        409
+      );
+
+    }
+
+    // route_station rows are deleted
+    // automatically because schema2 has
+    // ON DELETE CASCADE
+    await client.query(
+      `
+      DELETE FROM route
+      WHERE route_id = $1
+      `,
+      [routeId]
+    );
+
+    await client.query("COMMIT");
+
+    return routeResult.rows[0];
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+};
+
+
+// =====================================================
+// DELETE STATION
+// =====================================================
+
+const deleteStation = async (stationId) => {
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const stationResult = await client.query(
+      `
+      SELECT
+        station_id,
+        station_name
+      FROM station
+      WHERE station_id = $1
+      FOR UPDATE
+      `,
+      [stationId]
+    );
+
+    if (stationResult.rowCount === 0) {
+
+      throw createAdminDeleteError(
+        "Station not found",
+        404
+      );
+
+    }
+
+    // Check all important references
+    const references = await client.query(
+      `
+      SELECT
+
+        EXISTS (
+          SELECT 1
+          FROM route
+          WHERE start_station_id = $1
+             OR end_station_id = $1
+        ) AS route_reference,
+
+        EXISTS (
+          SELECT 1
+          FROM route_station
+          WHERE station_id = $1
+        ) AS route_station_reference,
+
+        EXISTS (
+          SELECT 1
+          FROM schedule
+          WHERE station_id = $1
+        ) AS schedule_reference,
+
+        EXISTS (
+          SELECT 1
+          FROM ticket
+          WHERE from_station_id = $1
+             OR to_station_id = $1
+        ) AS ticket_reference,
+
+        EXISTS (
+          SELECT 1
+          FROM train_tracking
+          WHERE station_id = $1
+        ) AS tracking_reference
+
+      `,
+      [stationId]
+    );
+
+    const ref = references.rows[0];
+
+    if (
+      ref.route_reference ||
+      ref.route_station_reference ||
+      ref.schedule_reference ||
+      ref.ticket_reference ||
+      ref.tracking_reference
+    ) {
+
+      throw createAdminDeleteError(
+        "Cannot delete this station because it is still referenced by a route, schedule, ticket, or tracking record.",
+        409
+      );
+
+    }
+
+    await client.query(
+      `
+      DELETE FROM station
+      WHERE station_id = $1
+      `,
+      [stationId]
+    );
+
+    await client.query("COMMIT");
+
+    return stationResult.rows[0];
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+};
+
+
 module.exports = {
     addTrain,
     addStation,
@@ -358,5 +860,10 @@ module.exports = {
     addTrackingTime,
     updateTrainTracking,
     findTrainsByRoute,
-    showTrainDetails
+    showTrainDetails,
+    deleteTrain,
+    deleteCoach,
+    deleteRoute,
+    deleteSchedule,
+    deleteStation
 };

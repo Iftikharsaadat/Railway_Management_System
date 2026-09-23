@@ -10,6 +10,7 @@ import AddRoute from "./pages/AddRoute";
 import AddStationToRoute from "./pages/AddStationToRoute";
 import AddTrain from "./pages/AddTrain";
 import AddCoach from "./pages/AddCoach";
+import DeleteAdmin from "./pages/DeleteAdmin";
 
 function App() {
   return (
@@ -59,6 +60,8 @@ function App() {
           path="*"
           element={<Home />}
         />
+
+        <Route path="/admin/delete" element={<DeleteAdmin />} />
 
       </Routes>
 

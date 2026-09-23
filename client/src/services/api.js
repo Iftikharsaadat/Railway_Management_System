@@ -220,13 +220,7 @@ export const getTrainDetails = async (trainId, from, to, date, token) => {
 };
 
 
-export const addCoach = async (
-  train_id,
-  coach_name,
-  seats,
-  type,
-  token
-) => {
+export const addCoach = async (train_id,coach_name,seats,type,token ) => {
   const response = await fetch(`${API_URL}/trains/addCoach`, {
     method: "POST",
     headers: {
@@ -249,3 +243,107 @@ export const addCoach = async (
 
   return data;
 };
+
+
+// =====================================================
+// ADMIN DELETE API FUNCTIONS
+// =====================================================
+
+const adminDelete = async (endpoint, token) => {
+  const response = await fetch(
+    `${API_URL}${endpoint}`,
+    {
+      method: "DELETE",
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Delete operation failed"
+    );
+  }
+
+  return data;
+};
+
+
+// =====================================================
+// DELETE TRAIN
+// =====================================================
+
+export const deleteTrain = (
+  trainId,
+  token
+) => {
+  return adminDelete(
+    `/trains/deleteTrain/${trainId}`,
+    token
+  );
+};
+
+
+// =====================================================
+// DELETE COACH
+// =====================================================
+
+export const deleteCoach = (
+  coachId,
+  token
+) => {
+  return adminDelete(
+    `/trains/deleteCoach/${coachId}`,
+    token
+  );
+};
+
+
+// =====================================================
+// DELETE ROUTE
+// =====================================================
+
+export const deleteRoute = (
+  routeId,
+  token
+) => {
+  return adminDelete(
+    `/trains/deleteRoute/${routeId}`,
+    token
+  );
+};
+
+
+// =====================================================
+// DELETE SCHEDULE
+// =====================================================
+
+export const deleteSchedule = (
+  scheduleId,
+  token
+) => {
+  return adminDelete(
+    `/trains/deleteSchedule/${scheduleId}`,
+    token
+  );
+};
+
+
+// =====================================================
+// DELETE STATION
+// =====================================================
+
+export const deleteStation = (
+  stationId,
+  token
+) => {
+  return adminDelete(
+    `/trains/deleteStation/${stationId}`,
+    token
+  );
+};
+

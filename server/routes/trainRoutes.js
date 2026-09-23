@@ -16,4 +16,11 @@ router.post("/addTrackingTime", verifyToken, adminOnly, trainController.addTrack
 router.post("/search", trainController.searchTrains);
 router.get("/train_details/:train_id", trainController.showDetails);
 
+
+router.delete("/deleteTrain/:train_id", verifyToken, adminOnly, trainController.deleteTrain);
+router.delete("/deleteCoach/:coach_id", verifyToken, adminOnly, trainController.deleteCoach);
+router.delete("/deleteRoute/:route_id", verifyToken, adminOnly, trainController.deleteRoute);
+router.delete("/deleteSchedule/:schedule_id", verifyToken, adminOnly, trainController.deleteSchedule);
+router.delete("/deleteStation/:station_id", verifyToken, adminOnly, trainController.deleteStation);
+
 module.exports = router;

@@ -216,6 +216,229 @@ const showDetails = async (req, res) => {
     }
 };
 
+
+const parseId = (value) => {
+  const id = Number(value);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return null;
+  }
+
+  return id;
+};
+
+
+// =====================================================
+// DELETE TRAIN
+// =====================================================
+
+const deleteTrain = async (req, res) => {
+  try {
+
+    const trainId = parseId(req.params.train_id);
+
+    if (!trainId) {
+      return res.status(400).json({
+        error: "Valid train_id is required"
+      });
+    }
+
+    const train = await trainService.deleteTrain(trainId);
+
+    return res.status(200).json({
+      message: `Train "${train.train_name}" deleted successfully`,
+      train
+    });
+
+  } catch (err) {
+
+    console.error(
+      "Delete Train Error:",
+      err.message
+    );
+
+    return res.status(
+      err.statusCode || 500
+    ).json({
+      error: err.message
+    });
+
+  }
+};
+
+
+// =====================================================
+// DELETE COACH
+// =====================================================
+
+const deleteCoach = async (req, res) => {
+  try {
+
+    const coachId = parseId(req.params.coach_id);
+
+    if (!coachId) {
+      return res.status(400).json({
+        error: "Valid coach_id is required"
+      });
+    }
+
+    const coach = await trainService.deleteCoach(
+      coachId
+    );
+
+    return res.status(200).json({
+      message: `Coach "${coach.coach_name}" deleted successfully`,
+      coach
+    });
+
+  } catch (err) {
+
+    console.error(
+      "Delete Coach Error:",
+      err.message
+    );
+
+    return res.status(
+      err.statusCode || 500
+    ).json({
+      error: err.message
+    });
+
+  }
+};
+
+
+// =====================================================
+// DELETE ROUTE
+// =====================================================
+
+const deleteRoute = async (req, res) => {
+  try {
+
+    const routeId = parseId(req.params.route_id);
+
+    if (!routeId) {
+      return res.status(400).json({
+        error: "Valid route_id is required"
+      });
+    }
+
+    const route = await trainService.deleteRoute(
+      routeId
+    );
+
+    return res.status(200).json({
+      message: `Route ${route.route_id} deleted successfully`,
+      route
+    });
+
+  } catch (err) {
+
+    console.error(
+      "Delete Route Error:",
+      err.message
+    );
+
+    return res.status(
+      err.statusCode || 500
+    ).json({
+      error: err.message
+    });
+
+  }
+};
+
+
+// =====================================================
+// DELETE SCHEDULE
+// =====================================================
+
+const deleteSchedule = async (req, res) => {
+  try {
+
+    const scheduleId = parseId(
+      req.params.schedule_id
+    );
+
+    if (!scheduleId) {
+      return res.status(400).json({
+        error: "Valid schedule_id is required"
+      });
+    }
+
+    const schedule =
+      await trainService.deleteSchedule(
+        scheduleId
+      );
+
+    return res.status(200).json({
+      message:
+        `Schedule ${schedule.schedule_id} deleted successfully`,
+      schedule
+    });
+
+  } catch (err) {
+
+    console.error(
+      "Delete Schedule Error:",
+      err.message
+    );
+
+    return res.status(
+      err.statusCode || 500
+    ).json({
+      error: err.message
+    });
+
+  }
+};
+
+
+// =====================================================
+// DELETE STATION
+// =====================================================
+
+const deleteStation = async (req, res) => {
+  try {
+
+    const stationId = parseId(
+      req.params.station_id
+    );
+
+    if (!stationId) {
+      return res.status(400).json({
+        error: "Valid station_id is required"
+      });
+    }
+
+    const station =
+      await trainService.deleteStation(
+        stationId
+      );
+
+    return res.status(200).json({
+      message:
+        `Station "${station.station_name}" deleted successfully`,
+      station
+    });
+
+  } catch (err) {
+
+    console.error(
+      "Delete Station Error:",
+      err.message
+    );
+
+    return res.status(
+      err.statusCode || 500
+    ).json({
+      error: err.message
+    });
+
+  }
+};
+
+
 module.exports = {
   addTrain,
   addRoute,
@@ -226,5 +449,10 @@ module.exports = {
   addCoordinates,
   addTrackingTime,
   searchTrains,
-  showDetails
+  showDetails,
+  deleteTrain,
+  deleteCoach,
+  deleteRoute,
+  deleteSchedule,
+  deleteStation
 };
