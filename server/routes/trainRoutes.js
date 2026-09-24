@@ -13,6 +13,12 @@ router.post("/addSeat", verifyToken, adminOnly, trainController.addSeat);
 router.post("/addCoordinates", verifyToken, adminOnly, trainController.addCoordinates);
 router.post("/addTrackingTime", verifyToken, adminOnly, trainController.addTrackingTime);
 
+router.put("/updateTrain/:trainId", verifyToken, adminOnly, trainController.updateTrain);
+router.put("/updateStation/:stationId", verifyToken, adminOnly, trainController.updateStation);
+router.put("/updateRoute/:routeId", verifyToken, adminOnly, trainController.updateRoute);
+router.put("/updateCoach/:coachId", verifyToken, adminOnly, trainController.updateCoach);
+router.put("/updateSchedule/:scheduleId", verifyToken, adminOnly, trainController.updateSchedule);
+
 router.post("/search", trainController.searchTrains);
 router.get("/train_details/:train_id", trainController.showDetails);
 

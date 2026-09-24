@@ -183,6 +183,127 @@ const addTrain = async (req, res) => {
   }
 };
 
+const updateTrain = async(req, res) =>{
+  try{
+    const {trainId} = req.params;
+    const { train_name: trainName, off_day: offDay } = req.body;
+
+    const updateRes = await trainService.updateTrain(trainName, offDay, trainId);
+    if (!updateRes) {
+      return res.status(404).json({ error: "Train not found" });
+    }
+    res.status(200).json({ message: "Train updated successfully", train: updateRes });
+  } catch (err) {
+    console.error("Update Train Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const updateStation = async (req, res) => {
+  try {
+    const { stationId } = req.params;
+    const { station_name: stationName, city } = req.body;
+    const station = await trainService.updateStation(stationName, city, stationId);
+
+    if (!station) {
+      return res.status(404).json({ error: "Station not found" });
+    }
+    res.status(200).json({ message: "Station updated successfully", station });
+  } catch (err) {
+    console.error("Update Station Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const updateRoute = async (req, res) => {
+  try {
+    const { routeId } = req.params;
+    const { stations } = req.body;
+
+    if (!Array.isArray(stations) || stations.length < 2) {
+      return res.status(400).json({
+        error: "stations must contain at least two stations in route order"
+      });
+    }
+
+    const hasInvalidStation = stations.some((station) => (
+      station.station_id == null ||
+      station.distance_km == null
+    ));
+    const stationIds = stations.map((station) => station.station_id);
+    const hasDuplicateStation = new Set(stationIds).size !== stationIds.length;
+
+    if (hasInvalidStation || hasDuplicateStation) {
+      return res.status(400).json({
+        error: "Each station needs a unique station_id and distance_km"
+      });
+    }
+
+    const route = await trainService.updateRoute(routeId, stations);
+
+    if (!route) {
+      return res.status(404).json({ error: "Route not found" });
+    }
+    res.status(200).json({
+      message: "Route stations updated successfully",
+      route: route.route,
+      routeStations: route.routeStations
+    });
+  } catch (err) {
+    console.error("Update Route Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const updateCoach = async (req, res) => {
+  try {
+    const { coachId } = req.params;
+    const {
+      coach_name: coachName,
+      seats,
+      type
+    } = req.body;
+    const coach = await trainService.updateCoach(coachName, seats, type, coachId);
+
+    if (!coach) {
+      return res.status(404).json({ error: "Coach not found" });
+    }
+    res.status(200).json({ message: "Coach updated successfully", coach });
+  } catch (err) {
+    console.error("Update Coach Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const updateSchedule = async (req, res) => {
+  try {
+    const { scheduleId } = req.params;
+    const {
+      train_id: trainId,
+      route_id: routeId,
+      date,
+      starting_time: startingTime,
+      station_id: stationId
+    } = req.body;
+    const schedule = await trainService.updateSchedule(
+      trainId,
+      routeId,
+      date,
+      startingTime,
+      stationId,
+      scheduleId
+    );
+
+    if (!schedule) {
+      return res.status(404).json({ error: "Schedule not found" });
+    }
+    res.status(200).json({ message: "Schedule updated successfully", schedule });
+  } catch (err) {
+    console.error("Update Schedule Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 const searchTrains = async (req, res) => {
   try {
     const { from, to, date } = req.body;
@@ -448,6 +569,11 @@ module.exports = {
   addSeat,
   addCoordinates,
   addTrackingTime,
+  updateTrain,
+  updateStation,
+  updateRoute,
+  updateCoach,
+  updateSchedule,
   searchTrains,
   showDetails,
   deleteTrain,

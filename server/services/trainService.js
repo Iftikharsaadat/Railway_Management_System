@@ -10,6 +10,7 @@ const addTrain = async (trainName, routeId, offDay) => {
 
     return result.rows[0];
 };
+
 const addStation = async(station_name,city) => {
     const result = await pool.query(
        `INSERT INTO station (station_name, city)
@@ -146,6 +147,119 @@ const updateTrainTracking = async(coordinates, actual_time, delay_minutes, statu
         WHERE tracking_id = $5
         RETURNING *;`,
         [coordinates, actual_time, delay_minutes, status, tracking_id]
+    );
+    return result.rows[0];
+}
+
+const updateTrain = async(train_name, off_day, train_id) =>{
+    const result = await pool.query(
+        `UPDATE train
+        SET
+            train_name = COALESCE($1, train_name),
+            off_day = COALESCE ($2, off_day)
+        WHERE train_id = $3
+        RETURNING *`, [train_name, off_day, train_id]
+    )
+    return result.rows[0];
+}
+
+const updateStation = async(station_name, city, station_id) =>{
+    const result = await pool.query(
+        `UPDATE station
+        SET
+            station_name = COALESCE($1, station_name),
+            city = COALESCE($2, city)
+        WHERE station_id = $3
+        RETURNING *`, [station_name, city, station_id]
+    );
+    return result.rows[0];
+}
+
+const updateRoute = async(route_id, stations) =>{
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const routeResult = await client.query(
+            `SELECT route_id
+            FROM route
+            WHERE route_id = $1
+            FOR UPDATE`, [route_id]
+        );
+
+        if (routeResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+
+        await client.query(
+            `DELETE FROM route_station
+            WHERE route_id = $1`, [route_id]
+        );
+
+        const routeStations = [];
+        for (const [index, station] of stations.entries()) {
+            const stationResult = await client.query(
+                `INSERT INTO route_station
+                (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *`,
+                [
+                    route_id,
+                    station.station_id,
+                    index + 1,
+                    station.arrival_time ?? null,
+                    station.departure_time ?? null,
+                    station.distance_km
+                ]
+            );
+            routeStations.push(stationResult.rows[0]);
+        }
+
+        const updatedRoute = await client.query(
+            `UPDATE route
+            SET start_station_id = $1,
+                end_station_id = $2
+            WHERE route_id = $3
+            RETURNING *`,
+            [stations[0].station_id, stations[stations.length - 1].station_id, route_id]
+        );
+
+        await client.query('COMMIT');
+        return { route: updatedRoute.rows[0], routeStations };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+const updateCoach = async(coach_name, seats, type, coach_id) =>{
+    const result = await pool.query(
+        `UPDATE coach
+        SET
+            coach_name = COALESCE($1, coach_name),
+            seats = COALESCE($2, seats),
+            type = COALESCE($3, type)
+        WHERE coach_id = $4
+        RETURNING *`, [coach_name, seats, type, coach_id]
+    );
+    return result.rows[0];
+}
+
+const updateSchedule = async(train_id, route_id, date, starting_time, station_id, schedule_id) =>{
+    const result = await pool.query(
+        `UPDATE schedule
+        SET
+            train_id = COALESCE($1, train_id),
+            route_id = COALESCE($2, route_id),
+            date = COALESCE($3, date),
+            starting_time = COALESCE($4, starting_time),
+            station_id = COALESCE($5, station_id)
+        WHERE schedule_id = $6
+        RETURNING *`, [train_id, route_id, date, starting_time, station_id, schedule_id]
     );
     return result.rows[0];
 }
@@ -859,6 +973,11 @@ module.exports = {
     addSeat,
     addTrackingTime,
     updateTrainTracking,
+    updateTrain,
+    updateStation,
+    updateRoute,
+    updateCoach,
+    updateSchedule,
     findTrainsByRoute,
     showTrainDetails,
     deleteTrain,
