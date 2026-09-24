@@ -19,7 +19,7 @@ const addStation = async(station_name,city) => {
         [station_name, city]
     );
     return result.rows[0];
-}
+  }
 
 const addRoute = async(start_station_id, end_station_id, stations = []) => {
     const client = await pool.connect();
@@ -66,14 +66,69 @@ const addRoute = async(start_station_id, end_station_id, stations = []) => {
 }
 
 const addStationToRoute = async(route_id, station_id, sequence_no, arrival_time, departure_time, distance_km) => {
-    const result = await pool.query(
-       `INSERT INTO route_station
-        (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *;`,
-        [route_id, station_id, sequence_no, arrival_time, departure_time, distance_km]
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const routeResult = await client.query(
+      `SELECT route_id
+      FROM route
+      WHERE route_id = $1
+      FOR UPDATE`,
+      [route_id]
     );
-    return result.rows[0];
+
+    if (routeResult.rowCount === 0) {
+      const error = new Error('Route not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    await client.query(
+      `UPDATE route_station
+      SET sequence_no = sequence_no + 1
+      WHERE route_id = $1
+        AND sequence_no >= $2`,
+      [route_id, sequence_no]
+    );
+
+    const stationResult = await client.query(
+      `INSERT INTO route_station
+      (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *`,
+      [route_id, station_id, sequence_no, arrival_time, departure_time, distance_km]
+    );
+
+    const endpoints = await client.query(
+      `SELECT station_id
+      FROM route_station
+      WHERE route_id = $1
+      ORDER BY sequence_no`,
+      [route_id]
+    );
+
+    await client.query(
+      `UPDATE route
+      SET start_station_id = $1,
+        end_station_id = $2
+      WHERE route_id = $3`,
+      [
+        endpoints.rows[0].station_id,
+        endpoints.rows[endpoints.rows.length - 1].station_id,
+        route_id
+      ]
+    );
+
+    await client.query('COMMIT');
+    return stationResult.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 const addCoach = async(train_id, coach_name, seats, type) => {
@@ -137,6 +192,18 @@ const addTrackingTime = async(schedule_id, station_id, expected_time, status) =>
     );
     return result.rows[0];
 }
+
+  const addSchedule = async(train_id, route_id, date, starting_time, station_id) => {
+    const result = await pool.query(
+      `INSERT INTO schedule
+      (train_id, route_id, date, starting_time, station_id)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *`,
+      [train_id, route_id, date, starting_time ?? null, station_id]
+    );
+    return result.rows[0];
+  }
+
 const updateTrainTracking = async(coordinates, actual_time, delay_minutes, status, tracking_id) => {
     const result = await pool.query(
        `UPDATE train_tracking
@@ -263,6 +330,104 @@ const updateSchedule = async(train_id, route_id, date, starting_time, station_id
     );
     return result.rows[0];
 }
+
+  const showTrainsAdmin = async (search = '') => {
+    const result = await pool.query(
+      `SELECT *
+      FROM (
+        SELECT
+          t.train_id,
+          t.train_name,
+          t.off_day,
+          r.route_id,
+          start_station.station_name AS from_station,
+          end_station.station_name AS to_station,
+          COUNT(DISTINCT c.coach_id)::int AS no_of_coaches
+        FROM train t
+        JOIN route r ON r.route_id = t.route_id
+        JOIN station start_station
+          ON start_station.station_id = r.start_station_id
+        JOIN station end_station
+          ON end_station.station_id = r.end_station_id
+        LEFT JOIN coach c ON c.train_id = t.train_id
+        GROUP BY
+          t.train_id,
+          t.train_name,
+          t.off_day,
+          r.route_id,
+          start_station.station_name,
+          end_station.station_name
+      ) AS train_summary
+      WHERE NULLIF($1, '') IS NULL
+         OR train_id::text ILIKE '%' || $1 || '%'
+         OR train_name ILIKE '%' || $1 || '%'
+         OR COALESCE(off_day, '') ILIKE '%' || $1 || '%'
+         OR route_id::text ILIKE '%' || $1 || '%'
+         OR from_station ILIKE '%' || $1 || '%'
+         OR to_station ILIKE '%' || $1 || '%'
+         OR no_of_coaches::text ILIKE '%' || $1 || '%'
+      ORDER BY train_id`,
+      [search.trim()]
+    );
+
+    return result.rows;
+  };
+
+  const showRoute = async (route_id) => {
+    const result = await pool.query(
+      `SELECT
+        r.route_id,
+        r.start_station_id,
+        start_station.station_name AS start_station_name,
+        r.end_station_id,
+        end_station.station_name AS end_station_name,
+        rs.station_id,
+        s.station_name,
+        s.city,
+        rs.sequence_no,
+        rs.arrival_time,
+        rs.departure_time,
+        rs.distance_km
+      FROM route r
+      LEFT JOIN station start_station
+        ON start_station.station_id = r.start_station_id
+      LEFT JOIN station end_station
+        ON end_station.station_id = r.end_station_id
+      LEFT JOIN route_station rs
+        ON rs.route_id = r.route_id
+      LEFT JOIN station s
+        ON s.station_id = rs.station_id
+      WHERE r.route_id = $1
+      ORDER BY rs.sequence_no`,
+      [route_id]
+    );
+
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    const firstRow = result.rows[0];
+    return {
+      route: {
+        route_id: firstRow.route_id,
+        start_station_id: firstRow.start_station_id,
+        start_station_name: firstRow.start_station_name,
+        end_station_id: firstRow.end_station_id,
+        end_station_name: firstRow.end_station_name
+      },
+      routeStations: result.rows
+        .filter((row) => row.station_id !== null)
+        .map((row) => ({
+          station_id: row.station_id,
+          station_name: row.station_name,
+          city: row.city,
+          sequence_no: row.sequence_no,
+          arrival_time: row.arrival_time,
+          departure_time: row.departure_time,
+          distance_km: row.distance_km
+        }))
+    };
+  };
 
 
 
@@ -483,7 +648,7 @@ const deleteTrain = async (trainId) => {
 
     const trainResult = await client.query(
       `
-      SELECT train_id, train_name
+      SELECT train_id, train_name, route_id
       FROM train
       WHERE train_id = $1
       FOR UPDATE
@@ -572,6 +737,15 @@ const deleteTrain = async (trainId) => {
       WHERE train_id = $1
       `,
       [trainId]
+    );
+
+    // route_station rows are removed by route's ON DELETE CASCADE.
+    await client.query(
+      `
+      DELETE FROM route
+      WHERE route_id = $1
+      `,
+      [trainResult.rows[0].route_id]
     );
 
     await client.query("COMMIT");
@@ -972,12 +1146,15 @@ module.exports = {
     addCoach,
     addSeat,
     addTrackingTime,
+    addSchedule,
     updateTrainTracking,
     updateTrain,
     updateStation,
     updateRoute,
     updateCoach,
     updateSchedule,
+    showTrainsAdmin,
+    showRoute,
     findTrainsByRoute,
     showTrainDetails,
     deleteTrain,

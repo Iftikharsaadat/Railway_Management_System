@@ -47,7 +47,9 @@ const addStationToRoute = async (req, res) => {
     res.status(201).json({ message: "Station added to route successfully", routeStation });
   } catch (err) {
     console.error("Add Station To Route Error", err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(err.statusCode || 500).json({
+      error: err.statusCode ? err.message : "Internal Server Error"
+    });
   }
 };
 const addSeat = async (req, res) => {
@@ -163,6 +165,40 @@ const addTrackingTime = async (req, res) => {
     res.status(201).json({ message: "Tracking time added successfully", tracking });
   } catch (err) {
     console.error("Add TrackingTime Error", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const addSchedule = async (req, res) => {
+  try {
+    const {
+      train_id: trainId,
+      route_id: routeId,
+      date,
+      starting_time: startingTime,
+      station_id: stationId
+    } = req.body;
+
+    if (trainId == null || routeId == null || !date || stationId == null) {
+      return res.status(400).json({
+        error: "train_id, route_id, date, and station_id are required"
+      });
+    }
+
+    const schedule = await trainService.addSchedule(
+      trainId,
+      routeId,
+      date,
+      startingTime,
+      stationId
+    );
+
+    res.status(201).json({
+      message: "Schedule added successfully",
+      schedule
+    });
+  } catch (err) {
+    console.error("Add Schedule Error:", err.message);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -304,6 +340,37 @@ const updateSchedule = async (req, res) => {
   }
 };
 
+const showTrainsAdmin = async (req, res) => {
+  try {
+    const trains = await trainService.showTrainsAdmin(req.query.search || '');
+    res.status(200).json({ trains });
+  } catch (err) {
+    console.error("Show Admin Trains Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const showRoute = async (req, res) => {
+  try {
+    const routeId = parseId(req.params.route_id);
+
+    if (!routeId) {
+      return res.status(400).json({ error: "Valid route_id is required" });
+    }
+
+    const route = await trainService.showRoute(routeId);
+
+    if (!route) {
+      return res.status(404).json({ error: "Route not found" });
+    }
+
+    res.status(200).json(route);
+  } catch (err) {
+    console.error("Show Route Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 const searchTrains = async (req, res) => {
   try {
     const { from, to, date } = req.body;
@@ -367,7 +434,7 @@ const deleteTrain = async (req, res) => {
     const train = await trainService.deleteTrain(trainId);
 
     return res.status(200).json({
-      message: `Train "${train.train_name}" deleted successfully`,
+      message: `Train "${train.train_name}" and its route deleted successfully`,
       train
     });
 
@@ -569,11 +636,14 @@ module.exports = {
   addSeat,
   addCoordinates,
   addTrackingTime,
+  addSchedule,
   updateTrain,
   updateStation,
   updateRoute,
   updateCoach,
   updateSchedule,
+  showTrainsAdmin,
+  showRoute,
   searchTrains,
   showDetails,
   deleteTrain,
