@@ -109,7 +109,7 @@ function AddRoute() {
 
         <button
           className="back-btn"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/admin")}
         >
           ← Back
         </button>

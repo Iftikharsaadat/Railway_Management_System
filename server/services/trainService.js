@@ -11,6 +11,36 @@ const addTrain = async (trainName, routeId, offDay) => {
     return result.rows[0];
 };
 
+  const addTrainWithRoute = async (trainName, offDay, stations) => {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const routeResult = await client.query(
+        `INSERT INTO route (start_station_id, end_station_id) VALUES ($1, $2) RETURNING *`,
+        [stations[0].station_id, stations[stations.length - 1].station_id]
+      );
+      const route = routeResult.rows[0];
+      for (const [index, station] of stations.entries()) {
+        await client.query(
+          `INSERT INTO route_station (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [route.route_id, station.station_id, index + 1, station.arrival_time ?? null, station.departure_time ?? null, station.distance_km]
+        );
+      }
+      const trainResult = await client.query(
+        `INSERT INTO train (train_name, route_id, off_day) VALUES ($1, $2, $3) RETURNING *`,
+        [trainName, route.route_id, offDay || null]
+      );
+      await client.query('COMMIT');
+      return { route, train: trainResult.rows[0] };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  };
+
 const addStation = async(station_name,city) => {
     const result = await pool.query(
        `INSERT INTO station (station_name, city)
@@ -66,14 +96,30 @@ const addRoute = async(start_station_id, end_station_id, stations = []) => {
 }
 
 const addStationToRoute = async(route_id, station_id, sequence_no, arrival_time, departure_time, distance_km) => {
-    const result = await pool.query(
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query(
        `INSERT INTO route_station
-        (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *;`,
-        [route_id, station_id, sequence_no, arrival_time, departure_time, distance_km]
+      (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *;`,
+      [route_id, station_id, sequence_no, arrival_time, departure_time, distance_km]
     );
+    await client.query(
+      `UPDATE route SET start_station_id = (SELECT station_id FROM route_station WHERE route_id = $1 ORDER BY sequence_no LIMIT 1),
+       end_station_id = (SELECT station_id FROM route_station WHERE route_id = $1 ORDER BY sequence_no DESC LIMIT 1)
+       WHERE route_id = $1`,
+      [route_id]
+    );
+    await client.query('COMMIT');
     return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 const addCoach = async(train_id, coach_name, seats, type) => {
@@ -250,6 +296,37 @@ const updateCoach = async(coach_name, seats, type, coach_id) =>{
 }
 
 const updateSchedule = async(train_id, route_id, date, starting_time, station_id, schedule_id) =>{
+  const currentSchedule = await pool.query(
+    `SELECT train_id, route_id, date::text AS date FROM schedule WHERE schedule_id = $1`,
+    [schedule_id]
+  );
+  if (currentSchedule.rowCount === 0) return null;
+
+  const nextTrainId = train_id ?? currentSchedule.rows[0].train_id;
+  const nextRouteId = route_id ?? currentSchedule.rows[0].route_id;
+  const nextDate = date ?? currentSchedule.rows[0].date;
+  const conflictingSchedule = await pool.query(
+    `SELECT schedule_id FROM schedule
+     WHERE train_id = $1 AND date = $2 AND schedule_id <> $3
+     LIMIT 1`,
+    [nextTrainId, nextDate, schedule_id]
+  );
+  if (conflictingSchedule.rowCount > 0) {
+    throw createAdminDeleteError(
+      "This train already has another schedule on the selected date. Choose a different date.",
+      409
+    );
+  }
+
+  if (nextRouteId != null && station_id != null) {
+    const stationOnRoute = await pool.query(
+      `SELECT 1 FROM route_station WHERE route_id = $1 AND station_id = $2`,
+      [nextRouteId, station_id]
+    );
+    if (stationOnRoute.rowCount === 0) {
+      throw createAdminDeleteError("The selected starting station does not belong to this route.", 409);
+    }
+  }
     const result = await pool.query(
         `UPDATE schedule
         SET
@@ -509,31 +586,18 @@ const deleteTrain = async (trainId) => {
       (row) => row.schedule_id
     );
 
-    // Delete payments and tickets belonging to schedules
     if (scheduleIds.length > 0) {
-
-      await client.query(
-        `
-        DELETE FROM payment
-        WHERE ticket_id IN (
-          SELECT ticket_id
-          FROM ticket
-          WHERE schedule_id = ANY($1::int[])
-        )
-        `,
+      const ticketReference = await client.query(
+        `SELECT 1 FROM ticket WHERE schedule_id = ANY($1::int[]) LIMIT 1`,
         [scheduleIds]
       );
+      if (ticketReference.rowCount > 0) {
+        throw createAdminDeleteError(
+          "This train cannot be deleted because one or more schedules have booking history. Preserve the tickets and remove the train through a separate archival policy.",
+          409
+        );
+      }
 
-      await client.query(
-        `
-        DELETE FROM ticket
-        WHERE schedule_id = ANY($1::int[])
-        `,
-        [scheduleIds]
-      );
-
-      // seat_lock and train_tracking use
-      // ON DELETE CASCADE from schedule
       await client.query(
         `
         DELETE FROM schedule
@@ -880,62 +944,57 @@ const deleteStation = async (stationId) => {
 
     }
 
-    // Check all important references
-    const references = await client.query(
-      `
-      SELECT
-
-        EXISTS (
-          SELECT 1
-          FROM route
-          WHERE start_station_id = $1
-             OR end_station_id = $1
-        ) AS route_reference,
-
-        EXISTS (
-          SELECT 1
-          FROM route_station
-          WHERE station_id = $1
-        ) AS route_station_reference,
-
-        EXISTS (
-          SELECT 1
-          FROM schedule
-          WHERE station_id = $1
-        ) AS schedule_reference,
-
-        EXISTS (
-          SELECT 1
-          FROM ticket
-          WHERE from_station_id = $1
-             OR to_station_id = $1
-        ) AS ticket_reference,
-
-        EXISTS (
-          SELECT 1
-          FROM train_tracking
-          WHERE station_id = $1
-        ) AS tracking_reference
-
-      `,
+    const routeRows = await client.query(
+      `SELECT route_id, station_id, sequence_no, arrival_time, departure_time, distance_km
+       FROM route_station
+       WHERE station_id = $1
+       ORDER BY route_id, sequence_no
+       FOR UPDATE`,
       [stationId]
     );
 
-    const ref = references.rows[0];
-
-    if (
-      ref.route_reference ||
-      ref.route_station_reference ||
-      ref.schedule_reference ||
-      ref.ticket_reference ||
-      ref.tracking_reference
-    ) {
-
-      throw createAdminDeleteError(
-        "Cannot delete this station because it is still referenced by a route, schedule, ticket, or tracking record.",
-        409
+    const routes = [...new Set(routeRows.rows.map((row) => row.route_id))];
+    for (const routeId of routes) {
+      const stationRows = await client.query(
+        `SELECT station_id, arrival_time, departure_time, distance_km
+         FROM route_station
+         WHERE route_id = $1 AND station_id <> $2
+         ORDER BY sequence_no
+         FOR UPDATE`,
+        [routeId, stationId]
       );
 
+      if (stationRows.rowCount < 2) {
+        throw createAdminDeleteError(
+          `Cannot remove ${stationResult.rows[0].station_name} because Route ${routeId} would have fewer than two stations.`,
+          409
+        );
+      }
+
+      await client.query(`DELETE FROM route_station WHERE route_id = $1 AND station_id = $2`, [routeId, stationId]);
+      for (const [index, row] of stationRows.rows.entries()) {
+        await client.query(
+          `UPDATE route_station SET sequence_no = $1 WHERE route_id = $2 AND station_id = $3`,
+          [index + 1, routeId, row.station_id]
+        );
+      }
+      await client.query(
+        `UPDATE route SET start_station_id = $1, end_station_id = $2 WHERE route_id = $3`,
+        [stationRows.rows[0].station_id, stationRows.rows[stationRows.rowCount - 1].station_id, routeId]
+      );
+    }
+
+    const scheduleReference = await client.query(`SELECT 1 FROM schedule WHERE station_id = $1 LIMIT 1`, [stationId]);
+    const trackingReference = await client.query(`SELECT 1 FROM train_tracking WHERE station_id = $1 LIMIT 1`, [stationId]);
+    const ticketReference = await client.query(
+      `SELECT 1 FROM ticket WHERE from_station_id = $1 OR to_station_id = $1 LIMIT 1`,
+      [stationId]
+    );
+    if (scheduleReference.rowCount > 0 || trackingReference.rowCount > 0 || ticketReference.rowCount > 0) {
+      throw createAdminDeleteError(
+        "This station was removed from active routes but cannot be deleted because schedules, tracking, or ticket history still reference it.",
+        409
+      );
     }
 
     await client.query(
@@ -963,9 +1022,72 @@ const deleteStation = async (stationId) => {
   }
 };
 
+const getAdminOverview = async () => {
+  const [trains, stations, routes, schedules, routeStations] = await Promise.all([
+    pool.query(`
+      SELECT t.train_id, t.train_name, t.off_day, t.route_id,
+             COUNT(DISTINCT c.coach_id)::int AS coach_count,
+              from_s.station_name AS from_station, to_s.station_name AS to_station,
+             COUNT(DISTINCT sch.schedule_id)::int AS schedule_count
+      FROM train t
+      JOIN route r ON r.route_id = t.route_id
+            JOIN LATERAL (SELECT s.station_name FROM route_station rs JOIN station s ON s.station_id = rs.station_id
+                WHERE rs.route_id = r.route_id ORDER BY rs.sequence_no LIMIT 1) from_s ON true
+            JOIN LATERAL (SELECT s.station_name FROM route_station rs JOIN station s ON s.station_id = rs.station_id
+                WHERE rs.route_id = r.route_id ORDER BY rs.sequence_no DESC LIMIT 1) to_s ON true
+      LEFT JOIN coach c ON c.train_id = t.train_id
+      LEFT JOIN schedule sch ON sch.train_id = t.train_id
+      GROUP BY t.train_id, r.route_id, from_s.station_name, to_s.station_name
+      ORDER BY t.train_name`),
+    pool.query(`SELECT station_id, station_name, city FROM station ORDER BY station_name`),
+    pool.query(`SELECT route_id, start_station_id, end_station_id FROM route ORDER BY route_id`),
+    pool.query(`SELECT s.schedule_id, s.train_id, s.route_id, s.date::text AS date, s.starting_time, s.station_id, t.train_name, st.station_name
+                FROM schedule s JOIN train t ON t.train_id = s.train_id JOIN station st ON st.station_id = s.station_id
+                ORDER BY s.date DESC, t.train_name`),
+    pool.query(`SELECT rs.route_id, rs.station_id, rs.sequence_no, st.station_name, st.city
+                FROM route_station rs JOIN station st ON st.station_id = rs.station_id
+                ORDER BY rs.route_id, rs.sequence_no`)
+  ]);
+  return { trains: trains.rows, stations: stations.rows, routes: routes.rows, schedules: schedules.rows, routeStations: routeStations.rows };
+};
+
+const getRouteDetails = async (routeId) => {
+  const route = await pool.query(`SELECT r.route_id, r.start_station_id, r.end_station_id,
+    from_s.station_id AS derived_start_station_id, to_s.station_id AS derived_end_station_id,
+    from_s.station_name AS from_station, to_s.station_name AS to_station
+    FROM route r
+    JOIN LATERAL (SELECT s.station_id, s.station_name FROM route_station rs JOIN station s ON s.station_id = rs.station_id
+      WHERE rs.route_id = r.route_id ORDER BY rs.sequence_no LIMIT 1) from_s ON true
+    JOIN LATERAL (SELECT s.station_id, s.station_name FROM route_station rs JOIN station s ON s.station_id = rs.station_id
+      WHERE rs.route_id = r.route_id ORDER BY rs.sequence_no DESC LIMIT 1) to_s ON true
+    WHERE r.route_id = $1`, [routeId]);
+  if (!route.rowCount) return null;
+  const stations = await pool.query(`SELECT rs.station_id, rs.sequence_no, rs.arrival_time, rs.departure_time,
+    rs.distance_km, s.station_name, s.city FROM route_station rs JOIN station s ON s.station_id = rs.station_id
+    WHERE rs.route_id = $1 ORDER BY rs.sequence_no`, [routeId]);
+  return { route: route.rows[0], stations: stations.rows };
+};
+
+const getTrainCoaches = async (trainId) => {
+  const train = await pool.query(`SELECT train_id, train_name FROM train WHERE train_id = $1`, [trainId]);
+  if (!train.rowCount) return null;
+  const coaches = await pool.query(`SELECT c.coach_id, c.coach_name, c.seats, c.type,
+    COUNT(s.seat_id)::int AS seat_count FROM coach c LEFT JOIN seat s ON s.coach_id = c.coach_id
+    WHERE c.train_id = $1 GROUP BY c.coach_id ORDER BY c.coach_name`, [trainId]);
+  return { train: train.rows[0], coaches: coaches.rows };
+};
+
+const getCoachSeats = async (coachId) => {
+  const coach = await pool.query(`SELECT coach_id, train_id, coach_name, type FROM coach WHERE coach_id = $1`, [coachId]);
+  if (!coach.rowCount) return null;
+  const seats = await pool.query(`SELECT seat_id, seat_number, direction, reservation_status FROM seat WHERE coach_id = $1 ORDER BY seat_number`, [coachId]);
+  return { coach: coach.rows[0], seats: seats.rows };
+};
+
 
 module.exports = {
     addTrain,
+  addTrainWithRoute,
     addStation,
     addRoute,
     addStationToRoute,
@@ -984,5 +1106,9 @@ module.exports = {
     deleteCoach,
     deleteRoute,
     deleteSchedule,
-    deleteStation
+    deleteStation,
+    getAdminOverview,
+    getRouteDetails,
+    getTrainCoaches,
+    getCoachSeats
 };

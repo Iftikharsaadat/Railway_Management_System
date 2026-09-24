@@ -34,7 +34,7 @@ function DeleteAdmin() {
         <div className="dashboard-message">
           <h2>Admin access required.</h2>
 
-          <button onClick={() => navigate("/dashboard")}>
+          <button onClick={() => navigate("/admin")}>
             Back to Dashboard
           </button>
         </div>
@@ -134,7 +134,7 @@ function DeleteAdmin() {
 
         <button
           className="logout-button"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/admin")}
         >
           Back to Dashboard
         </button>

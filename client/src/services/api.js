@@ -3,6 +3,20 @@
 
 const API_URL = "http://localhost:5000/api";
 
+const adminGet = async (path, token) => {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Admin request failed");
+  return data;
+};
+
+export const getAdminOverview = (token) => adminGet("/trains/admin/overview", token);
+export const getAdminRoute = (routeId, token) => adminGet(`/trains/admin/routes/${routeId}`, token);
+export const getAdminCoaches = (trainId, token) => adminGet(`/trains/admin/trains/${trainId}/coaches`, token);
+export const getAdminSeats = (coachId, token) => adminGet(`/trains/admin/coaches/${coachId}/seats`, token);
+
 
 // =========================
 // LOGIN
@@ -175,6 +189,17 @@ export const addStationToRoute = async (
   return data;
 };
 
+export const updateRoute = async (routeId, stations, token) => {
+  const response = await fetch(`${API_URL}/trains/updateRoute/${routeId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ stations }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Failed to update route");
+  return data;
+};
+
 
 export const addTrain = async (train_name, route_id, off_day, token) => {
   const response = await fetch(`${API_URL}/trains/addTrain`, {
@@ -196,6 +221,39 @@ export const addTrain = async (train_name, route_id, off_day, token) => {
     throw new Error(data.error || "Failed to add train");
   }
 
+  return data;
+};
+
+export const addTrainWithRoute = async (train_name, off_day, stations, token) => {
+  const response = await fetch(`${API_URL}/trains/addTrainWithRoute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ train_name, off_day: off_day || null, stations }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Failed to create route and train");
+  return data;
+};
+
+export const updateTrain = async (trainId, train_name, off_day, token) => {
+  const response = await fetch(`${API_URL}/trains/updateTrain/${trainId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ train_name, off_day: off_day || null }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Failed to update train");
+  return data;
+};
+
+export const updateSchedule = async (scheduleId, schedule, token) => {
+  const response = await fetch(`${API_URL}/trains/updateSchedule/${scheduleId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(schedule),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Failed to update schedule");
   return data;
 };
 

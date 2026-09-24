@@ -53,7 +53,7 @@ function AddStation() {
       <div className="admin-page-header">
         <button
           className="back-btn"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/admin")}
         >
           ← Back
         </button>

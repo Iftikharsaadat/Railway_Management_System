@@ -183,6 +183,24 @@ const addTrain = async (req, res) => {
   }
 };
 
+const addTrainWithRoute = async (req, res) => {
+  try {
+    const { train_name: trainName, off_day: offDay, stations } = req.body;
+    if (!trainName || !Array.isArray(stations) || stations.length < 2) {
+      return res.status(400).json({ error: "train_name and at least two stations are required" });
+    }
+    const stationIds = stations.map((station) => station.station_id);
+    if (stationIds.some((stationId) => !Number.isInteger(stationId)) || new Set(stationIds).size !== stationIds.length || stations.some((station) => station.distance_km == null)) {
+      return res.status(400).json({ error: "Route stations must be unique and include distance_km" });
+    }
+    const result = await trainService.addTrainWithRoute(trainName, offDay, stations);
+    res.status(201).json({ message: "Route and train added successfully", ...result });
+  } catch (err) {
+    console.error("Add Train With Route Error:", err.message);
+    res.status(500).json({ error: "Unable to create route and train" });
+  }
+};
+
 const updateTrain = async(req, res) =>{
   try{
     const {trainId} = req.params;
@@ -300,7 +318,7 @@ const updateSchedule = async (req, res) => {
     res.status(200).json({ message: "Schedule updated successfully", schedule });
   } catch (err) {
     console.error("Update Schedule Error:", err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(err.statusCode || 500).json({ error: err.message || "Internal Server Error" });
   }
 };
 
@@ -337,6 +355,47 @@ const showDetails = async (req, res) => {
     }
 };
 
+const adminOverview = async (req, res) => {
+  try {
+    res.json(await trainService.getAdminOverview());
+  } catch (err) {
+    console.error("Admin Overview Error:", err.message);
+    res.status(500).json({ error: "Unable to load admin data" });
+  }
+};
+
+const routeDetails = async (req, res) => {
+  try {
+    const details = await trainService.getRouteDetails(parseId(req.params.routeId));
+    if (!details) return res.status(404).json({ error: "Route not found" });
+    res.json(details);
+  } catch (err) {
+    console.error("Route Details Error:", err.message);
+    res.status(500).json({ error: "Unable to load route details" });
+  }
+};
+
+const trainCoaches = async (req, res) => {
+  try {
+    const details = await trainService.getTrainCoaches(parseId(req.params.trainId));
+    if (!details) return res.status(404).json({ error: "Train not found" });
+    res.json(details);
+  } catch (err) {
+    console.error("Train Coaches Error:", err.message);
+    res.status(500).json({ error: "Unable to load coaches" });
+  }
+};
+
+const coachSeats = async (req, res) => {
+  try {
+    const details = await trainService.getCoachSeats(parseId(req.params.coachId));
+    if (!details) return res.status(404).json({ error: "Coach not found" });
+    res.json(details);
+  } catch (err) {
+    console.error("Coach Seats Error:", err.message);
+    res.status(500).json({ error: "Unable to load seats" });
+  }
+};
 
 const parseId = (value) => {
   const id = Number(value);
@@ -386,7 +445,6 @@ const deleteTrain = async (req, res) => {
 
   }
 };
-
 
 // =====================================================
 // DELETE COACH
@@ -562,6 +620,7 @@ const deleteStation = async (req, res) => {
 
 module.exports = {
   addTrain,
+  addTrainWithRoute,
   addRoute,
   addStation,
   addStationToRoute,
@@ -576,6 +635,10 @@ module.exports = {
   updateSchedule,
   searchTrains,
   showDetails,
+  adminOverview,
+  routeDetails,
+  trainCoaches,
+  coachSeats,
   deleteTrain,
   deleteCoach,
   deleteRoute,

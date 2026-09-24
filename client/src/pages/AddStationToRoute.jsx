@@ -64,7 +64,7 @@ function AddStationToRoute() {
 
         <button
           className="back-btn"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/admin")}
         >
           ← Back
         </button>

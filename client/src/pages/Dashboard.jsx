@@ -909,109 +909,13 @@ function Dashboard() {
 
 
             <div className="admin-section">
-
-  <h2>Admin Panel</h2>
-
-  <div className="admin-grid">
-
-    <a
-      href="/admin/add-train"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🚆
-      </div>
-
-      <h3>Add Train</h3>
-
-      <p>
-        Add a new train to a route.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/add-station"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🚉
-      </div>
-
-      <h3>Add Station</h3>
-
-      <p>
-        Create a new railway station.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/add-route"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🛤️
-      </div>
-
-      <h3>Add Route</h3>
-
-      <p>
-        Create a railway route.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/add-station-to-route"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        📍
-      </div>
-
-      <h3>Add Station To Route</h3>
-
-      <p>
-        Add a station to an existing route.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/add-coach"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🚃
-      </div>
-
-      <h3>Add Coach</h3>
-
-      <p>
-        Add coach and generate seats.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/delete"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🗑️
-      </div>
-
-      <h3>Delete Operations</h3>
-
-      <p>
-        Delete train, coach, route, schedule or station.
-      </p>
-    </a>
-
-  </div>
-
-</div>
+              <h2>Admin Panel</h2>
+              <a href="/admin" className="admin-card">
+                <div className="admin-card-icon">🚆</div>
+                <h3>Open Railway Management</h3>
+                <p>Manage trains, routes, coaches, seats, schedules and stations from one workspace.</p>
+              </a>
+            </div>
 
           </section>
 

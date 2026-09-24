@@ -5,6 +5,7 @@ const verifyToken = require("../middlewares/authMiddleware");
 const adminOnly = require("../middlewares/adminMiddleware");
 
 router.post("/addTrain", verifyToken, adminOnly, trainController.addTrain);
+router.post("/addTrainWithRoute", verifyToken, adminOnly, trainController.addTrainWithRoute);
 router.post("/addRoute", verifyToken, adminOnly, trainController.addRoute);
 router.post("/addStation", verifyToken, adminOnly, trainController.addStation);
 router.post("/addStationToRoute", verifyToken, adminOnly, trainController.addStationToRoute);
@@ -22,6 +23,10 @@ router.put("/updateSchedule/:scheduleId", verifyToken, adminOnly, trainControlle
 router.post("/search", trainController.searchTrains);
 router.get("/train_details/:train_id", trainController.showDetails);
 
+router.get("/admin/overview", verifyToken, adminOnly, trainController.adminOverview);
+router.get("/admin/routes/:routeId", verifyToken, adminOnly, trainController.routeDetails);
+router.get("/admin/trains/:trainId/coaches", verifyToken, adminOnly, trainController.trainCoaches);
+router.get("/admin/coaches/:coachId/seats", verifyToken, adminOnly, trainController.coachSeats);
 
 router.delete("/deleteTrain/:train_id", verifyToken, adminOnly, trainController.deleteTrain);
 router.delete("/deleteCoach/:coach_id", verifyToken, adminOnly, trainController.deleteCoach);
