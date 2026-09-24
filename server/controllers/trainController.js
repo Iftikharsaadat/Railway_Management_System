@@ -246,14 +246,17 @@ const updateRoute = async (req, res) => {
 
     const hasInvalidStation = stations.some((station) => (
       station.station_id == null ||
-      station.distance_km == null
+      station.distance_km == null ||
+      !Number.isInteger(Number(station.sequence_no))
     ));
     const stationIds = stations.map((station) => station.station_id);
+    const sequenceNumbers = stations.map((station) => Number(station.sequence_no));
     const hasDuplicateStation = new Set(stationIds).size !== stationIds.length;
+    const hasDuplicateSequence = new Set(sequenceNumbers).size !== sequenceNumbers.length;
 
-    if (hasInvalidStation || hasDuplicateStation) {
+    if (hasInvalidStation || hasDuplicateStation || hasDuplicateSequence) {
       return res.status(400).json({
-        error: "Each station needs a unique station_id and distance_km"
+        error: "Each station needs a unique station, sequence number, and distance"
       });
     }
 
@@ -269,7 +272,7 @@ const updateRoute = async (req, res) => {
     });
   } catch (err) {
     console.error("Update Route Error:", err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(err.statusCode || 500).json({ error: err.message || "Internal Server Error" });
   }
 };
 

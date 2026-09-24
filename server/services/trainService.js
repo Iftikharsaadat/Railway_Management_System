@@ -244,8 +244,9 @@ const updateRoute = async(route_id, stations) =>{
             WHERE route_id = $1`, [route_id]
         );
 
+        const orderedStations = [...stations].sort((left, right) => Number(left.sequence_no) - Number(right.sequence_no));
         const routeStations = [];
-        for (const [index, station] of stations.entries()) {
+        for (const station of orderedStations) {
             const stationResult = await client.query(
                 `INSERT INTO route_station
                 (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
@@ -254,7 +255,7 @@ const updateRoute = async(route_id, stations) =>{
                 [
                     route_id,
                     station.station_id,
-                    index + 1,
+                    Number(station.sequence_no),
                     station.arrival_time ?? null,
                     station.departure_time ?? null,
                     station.distance_km
@@ -269,7 +270,7 @@ const updateRoute = async(route_id, stations) =>{
                 end_station_id = $2
             WHERE route_id = $3
             RETURNING *`,
-            [stations[0].station_id, stations[stations.length - 1].station_id, route_id]
+            [orderedStations[0].station_id, orderedStations[orderedStations.length - 1].station_id, route_id]
         );
 
         await client.query('COMMIT');
