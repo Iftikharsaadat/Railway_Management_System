@@ -491,6 +491,16 @@ const showSchedule = async (req, res) => {
   }
 };
 
+const showSchedulesAdmin = async (req, res) => {
+  try {
+    const schedules = await trainService.showSchedulesAdmin(req.query.search || '');
+    res.status(200).json({ schedules });
+  } catch (err) {
+    console.error("Show Admin Schedules Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 const searchTrains = async (req, res) => {
   try {
     const { from, to, date } = req.body;
@@ -768,6 +778,7 @@ module.exports = {
   showStationsAdmin,
   showCoachesAdmin,
   showSchedule,
+  showSchedulesAdmin,
   showRoute,
   searchTrains,
   showDetails,

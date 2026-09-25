@@ -25,6 +25,7 @@ router.get("/admin/trains", verifyToken, adminOnly, trainController.showTrainsAd
 router.get("/admin/stations", verifyToken, adminOnly, trainController.showStationsAdmin);
 router.get("/admin/trains/:train_id/coaches", verifyToken, adminOnly, trainController.showCoachesAdmin);
 router.get("/admin/schedules/:schedule_id", verifyToken, adminOnly, trainController.showSchedule);
+router.get("/admin/schedules", verifyToken, adminOnly, trainController.showSchedulesAdmin);
 router.get("/route/:route_id", verifyToken, adminOnly, trainController.showRoute);
 
 router.post("/search", trainController.searchTrains);

@@ -11,6 +11,7 @@ import AddStationToRoute from "./pages/AddStationToRoute";
 import AddTrain from "./pages/AddTrain";
 import AddCoach from "./pages/AddCoach";
 import DeleteAdmin from "./pages/DeleteAdmin";
+import AdminManagement from "./pages/AdminManagement";
 
 function App() {
   return (
@@ -62,6 +63,10 @@ function App() {
         />
 
         <Route path="/admin/delete" element={<DeleteAdmin />} />
+
+        <Route path="/admin/manage" element={<AdminManagement />} />
+        <Route path="/admin/manage/route/:routeId" element={<AdminManagement />} />
+        <Route path="/admin/manage/train/:trainId/coaches" element={<AdminManagement />} />
 
       </Routes>
 

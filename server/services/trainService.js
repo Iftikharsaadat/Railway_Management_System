@@ -624,6 +624,34 @@ const updateSchedule = async(train_id, route_id, date, starting_time, station_id
     return result.rows[0] || null;
   };
 
+  const showSchedulesAdmin = async (search = '') => {
+    const result = await pool.query(
+      `SELECT
+        sch.schedule_id,
+        sch.date,
+        sch.starting_time,
+        sch.train_id,
+        t.train_name,
+        sch.route_id,
+        sch.station_id,
+        s.station_name
+      FROM schedule sch
+      JOIN train t ON t.train_id = sch.train_id
+      JOIN station s ON s.station_id = sch.station_id
+      WHERE NULLIF($1, '') IS NULL
+         OR sch.schedule_id::text ILIKE '%' || $1 || '%'
+         OR sch.train_id::text ILIKE '%' || $1 || '%'
+         OR t.train_name ILIKE '%' || $1 || '%'
+         OR sch.route_id::text ILIKE '%' || $1 || '%'
+         OR sch.date::text ILIKE '%' || $1 || '%'
+         OR s.station_name ILIKE '%' || $1 || '%'
+      ORDER BY sch.date, sch.starting_time, sch.schedule_id`,
+      [search.trim()]
+    );
+
+    return result.rows;
+  };
+
   const showRoute = async (route_id) => {
     const result = await pool.query(
       `SELECT
@@ -1410,6 +1438,7 @@ module.exports = {
     showStationsAdmin,
     showCoachesAdmin,
     showSchedule,
+    showSchedulesAdmin,
     showRoute,
     findTrainsByRoute,
     showTrainDetails,

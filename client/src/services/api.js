@@ -244,6 +244,62 @@ export const addCoach = async (train_id,coach_name,seats,type,token ) => {
   return data;
 };
 
+const adminRequest = async (path, token, options = {}) => {
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Request failed");
+  return data;
+};
+
+export const getAdminTrains = (search, token) =>
+  adminRequest(`/trains/admin/trains?search=${encodeURIComponent(search || "")}`, token);
+
+export const getAdminStations = (search, token) =>
+  adminRequest(`/trains/admin/stations?search=${encodeURIComponent(search || "")}`, token);
+
+export const getRoute = (routeId, token) =>
+  adminRequest(`/trains/route/${routeId}`, token);
+
+export const getTrainCoaches = (trainId, token) =>
+  adminRequest(`/trains/admin/trains/${trainId}/coaches`, token);
+
+export const getSchedule = (scheduleId, token) =>
+  adminRequest(`/trains/admin/schedules/${scheduleId}`, token);
+
+export const getAdminSchedules = (search, token) =>
+  adminRequest(`/trains/admin/schedules?search=${encodeURIComponent(search || "")}`, token);
+
+export const updateTrain = (trainId, body, token) =>
+  adminRequest(`/trains/updateTrain/${trainId}`, token, { method: "PUT", body: JSON.stringify(body) });
+
+export const updateStation = (stationId, body, token) =>
+  adminRequest(`/trains/updateStation/${stationId}`, token, { method: "PUT", body: JSON.stringify(body) });
+
+export const updateCoach = (coachId, body, token) =>
+  adminRequest(`/trains/updateCoach/${coachId}`, token, { method: "PUT", body: JSON.stringify(body) });
+
+export const updateRouteStation = (routeId, stationId, body, token) =>
+  adminRequest(`/trains/updateRouteStation/${routeId}/${stationId}`, token, { method: "PUT", body: JSON.stringify(body) });
+
+export const updateSchedule = (scheduleId, body, token) =>
+  adminRequest(`/trains/updateSchedule/${scheduleId}`, token, { method: "PUT", body: JSON.stringify(body) });
+
+export const addSchedule = (body, token) =>
+  adminRequest("/trains/addSchedule", token, { method: "POST", body: JSON.stringify(body) });
+
+export const addStationToRouteAdmin = (body, token) =>
+  adminRequest("/trains/addStationToRoute", token, { method: "POST", body: JSON.stringify(body) });
+
+export const deleteStationFromRoute = (routeId, stationId, token) =>
+  adminRequest(`/trains/deleteStationFromRoute/${routeId}/${stationId}`, token, { method: "DELETE" });
+
 
 // =====================================================
 // ADMIN DELETE API FUNCTIONS

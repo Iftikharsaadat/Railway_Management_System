@@ -384,6 +384,21 @@
 //   <div className="admin-grid">
 
 //     <a
+//       href="/admin/manage"
+//       className="admin-card"
+//     >
+//       <div className="admin-card-icon">
+//         🛠️
+//       </div>
+//
+//       <h3>Management Center</h3>
+//
+//       <p>
+//         Modify trains, schedules and stations.
+//       </p>
+//     </a>
+//
+//     <a
 //       href="/admin/add-train"
 //       className="admin-card"
 //     >
@@ -913,6 +928,21 @@ function Dashboard() {
   <h2>Admin Panel</h2>
 
   <div className="admin-grid">
+
+    <a
+      href="/admin/manage"
+      className="admin-card"
+    >
+      <div className="admin-card-icon">
+        🛠️
+      </div>
+
+      <h3>Management Center</h3>
+
+      <p>
+        Modify trains, schedules and stations.
+      </p>
+    </a>
 
     <a
       href="/admin/add-train"
