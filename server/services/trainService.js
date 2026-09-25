@@ -131,6 +131,90 @@ const addStationToRoute = async(route_id, station_id, sequence_no, arrival_time,
   }
 }
 
+const deleteStationFromRoute = async (route_id, station_id) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const routeResult = await client.query(
+      `SELECT route_id
+      FROM route
+      WHERE route_id = $1
+      FOR UPDATE`,
+      [route_id]
+    );
+
+    if (routeResult.rowCount === 0) {
+      const error = new Error('Route not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const stationResult = await client.query(
+      `DELETE FROM route_station
+      WHERE route_id = $1
+        AND station_id = $2
+      RETURNING *`,
+      [route_id, station_id]
+    );
+
+    if (stationResult.rowCount === 0) {
+      const error = new Error('Station is not part of this route');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const remainingStations = await client.query(
+      `SELECT station_id
+      FROM route_station
+      WHERE route_id = $1
+      ORDER BY sequence_no`,
+      [route_id]
+    );
+
+    if (remainingStations.rowCount < 2) {
+      const error = new Error('A route must contain at least two stations');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    await client.query(
+      `UPDATE route_station AS rs
+      SET sequence_no = ordered.new_sequence_no
+      FROM (
+        SELECT station_id,
+               ROW_NUMBER() OVER (ORDER BY sequence_no)::int AS new_sequence_no
+        FROM route_station
+        WHERE route_id = $1
+      ) AS ordered
+      WHERE rs.route_id = $1
+        AND rs.station_id = ordered.station_id`,
+      [route_id]
+    );
+
+    await client.query(
+      `UPDATE route
+      SET start_station_id = $1,
+          end_station_id = $2
+      WHERE route_id = $3`,
+      [
+        remainingStations.rows[0].station_id,
+        remainingStations.rows[remainingStations.rowCount - 1].station_id,
+        route_id
+      ]
+    );
+
+    await client.query('COMMIT');
+    return stationResult.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 const addCoach = async(train_id, coach_name, seats, type) => {
     const client = await pool.connect();
 
@@ -241,6 +325,73 @@ const updateStation = async(station_name, city, station_id) =>{
     );
     return result.rows[0];
 }
+
+const updateRouteStation = async (
+  route_id,
+  station_id,
+  arrival_time,
+  departure_time,
+  distance_km
+) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const stationResult = await client.query(
+      `SELECT rs.route_id, rs.station_id
+      FROM route_station rs
+      JOIN station s ON s.station_id = rs.station_id
+      WHERE rs.route_id = $1 AND rs.station_id = $2
+      FOR UPDATE`,
+      [route_id, station_id]
+    );
+
+    if (stationResult.rowCount === 0) {
+      const error = new Error('Station is invalid or is not part of this route');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (stationResult.rowCount > 1) {
+      const error = new Error('Duplicate station found in this route');
+      error.statusCode = 409;
+      throw error;
+    }
+
+    const result = await client.query(
+      `UPDATE route_station
+      SET arrival_time = $1,
+          departure_time = $2,
+          distance_km = $3
+      WHERE route_id = $4 AND station_id = $5
+      RETURNING *`,
+      [arrival_time ?? null, departure_time ?? null, distance_km, route_id, station_id]
+    );
+
+    await client.query(
+      `UPDATE route
+      SET start_station_id = (
+            SELECT station_id FROM route_station
+            WHERE route_id = $1 ORDER BY sequence_no LIMIT 1
+          ),
+          end_station_id = (
+            SELECT station_id FROM route_station
+            WHERE route_id = $1 ORDER BY sequence_no DESC LIMIT 1
+          )
+      WHERE route_id = $1`,
+      [route_id]
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
 
 const updateRoute = async(route_id, stations) =>{
     const client = await pool.connect();
@@ -371,6 +522,106 @@ const updateSchedule = async(train_id, route_id, date, starting_time, station_id
     );
 
     return result.rows;
+  };
+
+  const showStationsAdmin = async (search = '') => {
+    const result = await pool.query(
+      `SELECT
+        station_id,
+        station_name,
+        city
+      FROM station
+      WHERE NULLIF($1, '') IS NULL
+         OR station_id::text ILIKE '%' || $1 || '%'
+         OR station_name ILIKE '%' || $1 || '%'
+         OR COALESCE(city, '') ILIKE '%' || $1 || '%'
+      ORDER BY station_id`,
+      [search.trim()]
+    );
+
+    return result.rows;
+  };
+
+  const showCoachesAdmin = async (train_id) => {
+    const result = await pool.query(
+      `SELECT
+        t.train_id,
+        t.train_name,
+        c.coach_id,
+        c.coach_name,
+        c.type,
+        c.seats,
+        COUNT(s.seat_id)::int AS actual_seat_count,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'seat_id', s.seat_id,
+              'seat_number', s.seat_number,
+              'direction', s.direction,
+              'reservation_status', s.reservation_status
+            ) ORDER BY s.seat_id
+          ) FILTER (WHERE s.seat_id IS NOT NULL),
+          '[]'::json
+        ) AS seat_details
+      FROM train t
+      LEFT JOIN coach c ON c.train_id = t.train_id
+      LEFT JOIN seat s ON s.coach_id = c.coach_id
+      WHERE t.train_id = $1
+      GROUP BY
+        t.train_id,
+        t.train_name,
+        c.coach_id,
+        c.coach_name,
+        c.type,
+        c.seats
+      ORDER BY c.coach_id`,
+      [train_id]
+    );
+
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    const firstRow = result.rows[0];
+    return {
+      train: {
+        train_id: firstRow.train_id,
+        train_name: firstRow.train_name
+      },
+      coaches: result.rows
+        .filter((row) => row.coach_id !== null)
+        .map((row) => ({
+          coach_id: row.coach_id,
+          coach_name: row.coach_name,
+          type: row.type,
+          seats: row.seats,
+          actual_seat_count: row.actual_seat_count,
+          seat_details: row.seat_details
+        }))
+    };
+  };
+
+  const showSchedule = async (schedule_id) => {
+    const result = await pool.query(
+      `SELECT
+        sch.schedule_id,
+        sch.date,
+        sch.starting_time,
+        t.train_id,
+        t.train_name,
+        r.route_id,
+        sch.station_id,
+        s.station_name,
+        s.city
+      FROM schedule sch
+      JOIN train t ON t.train_id = sch.train_id
+      JOIN route r ON r.route_id = sch.route_id
+      JOIN station s ON s.station_id = sch.station_id
+      WHERE sch.schedule_id = $1`,
+      [schedule_id]
+    );
+
+    return result.rows[0] || null;
   };
 
   const showRoute = async (route_id) => {
@@ -1143,6 +1394,7 @@ module.exports = {
     addStation,
     addRoute,
     addStationToRoute,
+    deleteStationFromRoute,
     addCoach,
     addSeat,
     addTrackingTime,
@@ -1150,10 +1402,14 @@ module.exports = {
     updateTrainTracking,
     updateTrain,
     updateStation,
+    updateRouteStation,
     updateRoute,
     updateCoach,
     updateSchedule,
     showTrainsAdmin,
+    showStationsAdmin,
+    showCoachesAdmin,
+    showSchedule,
     showRoute,
     findTrainsByRoute,
     showTrainDetails,

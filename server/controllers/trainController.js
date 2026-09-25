@@ -52,6 +52,29 @@ const addStationToRoute = async (req, res) => {
     });
   }
 };
+
+const deleteStationFromRoute = async (req, res) => {
+  try {
+    const routeId = Number(req.params.route_id);
+    const stationId = Number(req.params.station_id);
+
+    if (!Number.isInteger(routeId) || routeId <= 0 || !Number.isInteger(stationId) || stationId <= 0) {
+      return res.status(400).json({ error: "Valid route_id and station_id are required" });
+    }
+
+    const routeStation = await trainService.deleteStationFromRoute(routeId, stationId);
+
+    res.status(200).json({
+      message: "Station deleted from route successfully",
+      routeStation
+    });
+  } catch (err) {
+    console.error("Delete Station From Route Error", err.message);
+    res.status(err.statusCode || 500).json({
+      error: err.statusCode ? err.message : "Internal Server Error"
+    });
+  }
+};
 const addSeat = async (req, res) => {
   try {
     const {
@@ -251,6 +274,51 @@ const updateStation = async (req, res) => {
   }
 };
 
+const updateRouteStation = async (req, res) => {
+  try {
+    const routeId = Number(req.params.route_id);
+    const stationId = Number(req.params.station_id);
+    const {
+      station_id: bodyStationId,
+      arrival_time: arrivalTime,
+      departure_time: departureTime,
+      distance_km: distanceKm
+    } = req.body;
+
+    if (!Number.isInteger(routeId) || routeId <= 0 || !Number.isInteger(stationId) || stationId <= 0) {
+      return res.status(400).json({ error: "Valid route_id and station_id are required" });
+    }
+
+    if (distanceKm == null) {
+      return res.status(400).json({ error: "distance_km is required" });
+    }
+
+    if (bodyStationId != null && Number(bodyStationId) !== stationId) {
+      return res.status(400).json({
+        error: "station_id must match the station_id in the URL"
+      });
+    }
+
+    const routeStation = await trainService.updateRouteStation(
+      routeId,
+      stationId,
+      arrivalTime,
+      departureTime,
+      Number(distanceKm)
+    );
+
+    res.status(200).json({
+      message: "Route station updated successfully",
+      routeStation
+    });
+  } catch (err) {
+    console.error("Update Route Station Error:", err.message);
+    res.status(err.statusCode || 500).json({
+      error: err.statusCode ? err.message : "Internal Server Error"
+    });
+  }
+};
+
 const updateRoute = async (req, res) => {
   try {
     const { routeId } = req.params;
@@ -367,6 +435,58 @@ const showRoute = async (req, res) => {
     res.status(200).json(route);
   } catch (err) {
     console.error("Show Route Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const showStationsAdmin = async (req, res) => {
+  try {
+    const stations = await trainService.showStationsAdmin(req.query.search || '');
+    res.status(200).json({ stations });
+  } catch (err) {
+    console.error("Show Admin Stations Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const showCoachesAdmin = async (req, res) => {
+  try {
+    const trainId = parseId(req.params.train_id);
+
+    if (!trainId) {
+      return res.status(400).json({ error: "Valid train_id is required" });
+    }
+
+    const result = await trainService.showCoachesAdmin(trainId);
+
+    if (!result) {
+      return res.status(404).json({ error: "Train not found" });
+    }
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("Show Train Coaches Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const showSchedule = async (req, res) => {
+  try {
+    const scheduleId = parseId(req.params.schedule_id);
+
+    if (!scheduleId) {
+      return res.status(400).json({ error: "Valid schedule_id is required" });
+    }
+
+    const schedule = await trainService.showSchedule(scheduleId);
+
+    if (!schedule) {
+      return res.status(404).json({ error: "Schedule not found" });
+    }
+
+    res.status(200).json({ schedule });
+  } catch (err) {
+    console.error("Show Schedule Error:", err.message);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -632,6 +752,7 @@ module.exports = {
   addRoute,
   addStation,
   addStationToRoute,
+  deleteStationFromRoute,
   addCoach,
   addSeat,
   addCoordinates,
@@ -639,10 +760,14 @@ module.exports = {
   addSchedule,
   updateTrain,
   updateStation,
+  updateRouteStation,
   updateRoute,
   updateCoach,
   updateSchedule,
   showTrainsAdmin,
+  showStationsAdmin,
+  showCoachesAdmin,
+  showSchedule,
   showRoute,
   searchTrains,
   showDetails,
