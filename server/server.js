@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes"); // import the login and reg route
 const trainRoutes = require("./routes/trainRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.get("/test-db", async (req, res) => {
 
 //search
 app.use("/api/trains", trainRoutes);
+app.use("/api", bookingRoutes);
 
 /*
 app.post("/api/search", async(req, res) =>{

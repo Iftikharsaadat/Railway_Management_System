@@ -1636,3 +1636,159 @@ a {
   color: #176b3a;
   border: 1px solid #b8e0c7;
 }
+
+/* Seat selection stays inside the existing Train Details panel. */
+.train-details-section { padding: 30px; margin-bottom: 30px; border: 1px solid #e5e8eb; border-radius: 14px; background: #fff; }
+.train-details-section > .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.train-detail-overview { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; padding: 18px; margin: 0 0 26px; border: 1px solid #e6ebee; border-radius: 10px; background: #f8fafb; }
+.train-detail-overview div { display: grid; gap: 6px; }
+.train-detail-overview span { color: #71808b; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.train-detail-overview strong { line-height: 1.5; }
+.seat-booking { padding-top: 24px; border-top: 1px solid #e7ecee; }
+.coach-picker-header, .booking-summary-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.coach-picker-header h3, .booking-summary-title h3 { margin-bottom: 5px; }
+.coach-picker-header p { color: #71808b; font-size: 13px; }
+.lock-countdown { flex: none; padding: 9px 12px; border-radius: 8px; background: #fff4dc; color: #765111; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.coach-picker { display: flex; gap: 10px; overflow-x: auto; padding: 16px 1px 20px; }
+.coach-option { display: grid; flex: 0 0 auto; gap: 5px; min-width: 145px; padding: 12px 16px; border: 1px solid #dce3e6; border-radius: 8px; color: #28343c; background: #fff; text-align: left; cursor: pointer; }
+.coach-option span { color: #75828a; font-size: 11px; }
+.coach-option.is-active { border-color: #17202a; box-shadow: inset 0 -3px #17202a; background: #f5f7f8; }
+.booking-error, .booking-notice, .payment-unavailable { padding: 13px 15px; margin: 12px 0; border-radius: 8px; font-size: 14px; line-height: 1.55; }
+.booking-error { border: 1px solid #f2c9c6; color: #9e3028; background: #fff2f1; }
+.booking-error a { display: inline-block; margin-top: 8px; color: inherit; font-weight: 700; text-decoration: underline; }
+.booking-notice { border: 1px solid #c9e7d0; color: #28613a; background: #eff9f1; }
+.booking-loading, .booking-empty { padding: 30px 16px; color: #6f7b83; text-align: center; }
+.seat-layout-and-summary { display: grid; grid-template-columns: minmax(0, 1fr) 310px; align-items: start; gap: 24px; }
+.seat-legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 0 0 12px; color: #5e6a72; font-size: 12px; }
+.seat-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 11px; height: 11px; border: 1px solid transparent; border-radius: 3px; }
+.legend-dot.available { background: #e8f5eb; border-color: #b6d9be; }
+.legend-dot.pending { background: #fff2d3; border-color: #e8d294; }
+.legend-dot.booked { background: #fde9e7; border-color: #e8b8b3; }
+.legend-dot.selected { background: #173e54; border-color: #173e54; }
+.coach-seat-shell { max-width: 650px; margin: 0 auto; border: 2px solid #bac6cc; border-radius: 22px; background: #fbfcfc; overflow: hidden; }
+.coach-direction { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; color: #354b58; background: #edf2f4; }
+.coach-direction span { font-size: 23px; line-height: 1; }
+.front-direction { border-bottom: 1px solid #d9e0e3; }
+.back-direction { border-top: 1px solid #d9e0e3; }
+.coach-seat-interior { padding: 15px clamp(12px, 4vw, 36px); }
+.seat-grid { display: grid; gap: 9px; }
+.seat-row { display: grid; grid-template-columns: repeat(2, minmax(48px, 1fr)) 30px repeat(2, minmax(48px, 1fr)); gap: 8px; align-items: center; }
+.seat-aisle { min-height: 37px; border-right: 1px dashed #cbd4d8; border-left: 1px dashed #cbd4d8; }
+.seat-tile { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 38px; padding: 4px 3px; border: 1px solid #a9cfb1; border-radius: 6px; background: #e8f5eb; color: #245b32; font-size: 11px; font-weight: 800; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+.seat-tile:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 3px 10px #20313b24; }
+.seat-tile small { position: absolute; top: 1px; right: 3px; color: #789087; font-size: 9px; }
+.seat-tile.seat-pending { border-color: #e5cf88; background: #fff2d3; color: #765a14; cursor: not-allowed; }
+.seat-tile.seat-booked { border-color: #e2b2ad; background: #fde9e7; color: #933c34; cursor: not-allowed; }
+.seat-tile.seat-selected { border-color: #173e54; background: #173e54; color: #fff; }
+.seat-tile:disabled { opacity: 1; }
+.coach-layout-caption { margin-top: 10px; color: #76838a; font-size: 12px; text-align: center; }
+.booking-summary { position: sticky; top: 16px; padding: 19px; border: 1px solid #dfe6e9; border-radius: 11px; background: #fff; box-shadow: 0 8px 24px #17202a0a; }
+.booking-eyebrow { color: #7a858c; font-size: 10px; font-weight: 800; letter-spacing: .11em; }
+.booking-summary-title { margin-bottom: 16px; }
+.selected-count { padding: 6px 9px; border-radius: 999px; color: #344650; background: #edf2f4; font-size: 12px; font-weight: 800; }
+.summary-empty { padding: 15px 0; color: #7b878e; font-size: 13px; }
+.selected-seat-list, .confirmation-seat-list { display: grid; gap: 0; list-style: none; }
+.selected-seat-list li, .confirmation-seat-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid #edf0f2; }
+.selected-seat-list li > div, .confirmation-seat-list li > div { display: grid; gap: 3px; }
+.selected-seat-list span, .confirmation-seat-list span { color: #67747c; font-size: 12px; }
+.selected-seat-list small, .confirmation-seat-list small { color: #9a6c23; font-size: 10px; }
+.selected-seat-list li > strong:last-child, .confirmation-seat-list li > strong:last-child { white-space: nowrap; }
+.booking-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 0; margin-top: 6px; border-top: 1px solid #dfe5e8; font-size: 14px; }
+.booking-total strong { font-size: 20px; }
+.booking-confirm-button, .button-link { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border: 0; border-radius: 8px; background: #17202a; color: #fff; font: inherit; font-weight: 800; text-align: center; cursor: pointer; }
+.booking-confirm-button { width: 100%; }
+.booking-confirm-button:disabled { cursor: not-allowed; opacity: .48; }
+.summary-footnote { margin-top: 10px; color: #77838a; font-size: 11px; line-height: 1.5; text-align: center; }
+
+/* Booking confirmation and printable ticket views. */
+.booking-page { min-height: 100vh; background: #f5f7f9; }
+.booking-page-header { display: flex; align-items: center; justify-content: space-between; height: 70px; padding: 0 max(5%, calc((100% - 1180px) / 2)); border-bottom: 1px solid #e3e8ea; background: #fff; }
+.booking-brand { color: #17202a; font-size: 20px; font-weight: 800; }
+.booking-brand span { margin-left: 4px; font-weight: 500; }
+.quiet-link { color: #51616a; font-size: 14px; font-weight: 700; }
+.booking-page-content { width: min(1120px, 92%); margin: 0 auto; padding: 45px 0 70px; }
+.booking-page-content > h1, .success-heading h1 { margin: 7px 0; font-size: clamp(28px, 4vw, 38px); }
+.booking-page-subtitle { margin: 0 0 26px; color: #6c7880; }
+.confirmation-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); align-items: start; gap: 20px; }
+.confirmation-card { padding: 24px; border: 1px solid #e0e6e9; border-radius: 12px; background: #fff; box-shadow: 0 8px 22px #17202a08; }
+.confirmation-train-heading, .ticket-topline { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.confirmation-train-heading h2, .ticket-topline h2 { margin-top: 5px; }
+.booking-date { padding: 7px 10px; border-radius: 6px; background: #f0f3f4; color: #52616a; font-size: 12px; font-weight: 700; }
+.confirmation-route, .ticket-route-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 21px 0; margin: 16px 0 21px; border-top: 1px solid #ebeff1; border-bottom: 1px solid #ebeff1; }
+.confirmation-route > div, .ticket-route-row > div { display: grid; gap: 5px; }
+.confirmation-route span:not(.route-arrow), .ticket-route-row span:not(.route-arrow) { color: #79858c; font-size: 11px; }
+.confirmation-route small { color: #66747d; }
+.passenger-count { padding: 10px 0 4px; color: #5c6971; font-size: 13px; }
+.confirmation-total { margin-top: 16px; }
+.confirmation-total strong { color: #173e54; font-size: 25px; }
+.confirmation-lock-time { color: #946b24; font-size: 12px; text-align: right; }
+.payment-card > p { margin: 7px 0 15px; color: #6d7981; font-size: 13px; line-height: 1.5; }
+.payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.payment-method { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 12px; border: 1px solid #dce3e6; border-radius: 8px; background: #fff; color: #34434c; cursor: pointer; }
+.payment-method.is-selected { border-color: #173e54; background: #f0f6f8; box-shadow: 0 0 0 1px #173e54; }
+.payment-radio { width: 15px; height: 15px; border: 1px solid #9ba9b0; border-radius: 50%; }
+.payment-method.is-selected .payment-radio { border: 5px solid #173e54; }
+.payment-unavailable { margin: 18px 0; border: 1px solid #efd8a9; color: #76591e; background: #fff8e9; }
+.payment-unavailable p { margin: 5px 0 0; color: #786b4d; font-size: 12px; }
+.return-seats-link { display: block; margin-top: 14px; color: #52646e; font-size: 13px; font-weight: 700; text-align: center; }
+.booking-message-page { display: grid; place-items: center; padding: 24px; }
+.booking-message-card { display: grid; gap: 16px; width: min(480px, 100%); padding: 30px; border: 1px solid #e0e6e9; border-radius: 12px; background: #fff; }
+.booking-message-card p { color: #66747c; line-height: 1.6; }
+.booking-message-card .quiet-link { text-align: center; }
+.success-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 25px; }
+.success-mark { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: #e4f5e9; color: #28733d; font-size: 27px; font-weight: 800; }
+.ticket-page .booking-page-content { width: min(800px, 92%); }
+.print-ticket { padding: 30px; border: 1px solid #d8e0e4; border-top: 5px solid #173e54; border-radius: 12px; background: #fff; box-shadow: 0 10px 30px #17202a0d; }
+.ticket-status { padding: 7px 10px; border-radius: 999px; background: #e8f5eb; color: #28613a; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.ticket-id-row, .ticket-payment-row { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; margin-top: 14px; border-top: 1px dashed #d6dfe3; border-bottom: 1px dashed #d6dfe3; }
+.ticket-id-row span, .ticket-payment-row span { color: #748189; font-size: 12px; }
+.ticket-route-row { justify-content: flex-start; }
+.ticket-route-row > div { flex: 1; }
+.ticket-route-row strong { font-size: 20px; }
+.ticket-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 5px 0 22px; }
+.ticket-facts div { display: grid; gap: 6px; }
+.ticket-facts span { color: #71808b; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.print-ticket h3 { margin: 8px 0; }
+.ticket-seat-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; padding: 11px 0; border-bottom: 1px solid #edf0f1; font-size: 13px; }
+.ticket-seat-row span { color: #66747c; }
+.ticket-payment-row { align-items: center; margin-top: 20px; padding: 16px 0; border-bottom: 0; }
+.ticket-payment-row div { display: grid; gap: 5px; }
+.ticket-payment-row div:last-child { text-align: right; }
+.ticket-payment-row div:last-child strong { font-size: 21px; }
+.ticket-footer { padding-top: 14px; border-top: 1px dashed #d6dfe3; color: #7a858b; font-size: 11px; text-align: center; }
+.ticket-actions { display: flex; gap: 12px; width: min(440px, 100%); margin: 20px auto; }
+.ticket-actions > * { flex: 1; }
+.secondary-link { border: 1px solid #ccd5da; background: #fff; color: #293840; }
+
+@media (max-width: 900px) {
+  .seat-layout-and-summary { grid-template-columns: minmax(0, 1fr) 270px; gap: 16px; }
+  .confirmation-layout { grid-template-columns: 1fr; }
+  .booking-summary { position: static; }
+}
+
+@media (max-width: 650px) {
+  .train-details-section { padding: 20px; }
+  .train-details-section > .section-heading { align-items: flex-start; }
+  .train-detail-overview { grid-template-columns: 1fr; }
+  .seat-layout-and-summary { grid-template-columns: 1fr; }
+  .coach-picker-header { align-items: flex-start; flex-direction: column; }
+  .coach-seat-interior { padding: 12px 8px; }
+  .seat-row { grid-template-columns: repeat(2, minmax(42px, 1fr)) 18px repeat(2, minmax(42px, 1fr)); gap: 5px; }
+  .seat-tile { min-height: 36px; font-size: 10px; }
+  .seat-aisle { min-height: 35px; }
+  .booking-page-header { height: 62px; padding: 0 5%; }
+  .booking-page-content { padding-top: 30px; }
+  .confirmation-card { padding: 18px; }
+  .ticket-actions { flex-direction: column; }
+  .ticket-facts { gap: 15px 10px; }
+  .print-ticket { padding: 20px 16px; }
+}
+
+@media print {
+  body, .booking-page { background: #fff !important; }
+  .no-print, .booking-page-header, .ticket-actions { display: none !important; }
+  .booking-page-content, .ticket-page .booking-page-content { width: 100%; margin: 0; padding: 0; }
+  .print-ticket { width: 100%; max-width: none; padding: 20px; border: 1px solid #777; border-top: 3px solid #222; border-radius: 0; box-shadow: none; }
+  .success-heading { display: none; }
+}

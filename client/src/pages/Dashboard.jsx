@@ -544,35 +544,49 @@
 
 
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getTrainDetails, searchTrains } from "../services/api";
+import SeatBookingPanel from "../components/SeatBookingPanel";
 
 function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const restoreBooking = location.state?.restoreBooking;
 
   const user = JSON.parse(localStorage.getItem("user"));
   const token = localStorage.getItem("token");
 
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [date, setDate] = useState("");
+  const [from, setFrom] = useState(restoreBooking?.journey.from_name || "");
+  const [to, setTo] = useState(restoreBooking?.journey.to_name || "");
+  const [date, setDate] = useState(restoreBooking?.journey.date || "");
 
-  const [trains, setTrains] = useState([]);
-  const [selectedTrain, setSelectedTrain] = useState(null);
-  const [details, setDetails] = useState(null);
+  const [trains, setTrains] = useState(restoreBooking?.train ? [restoreBooking.train] : []);
+  const [selectedTrain, setSelectedTrain] = useState(restoreBooking?.train || null);
+  const [details, setDetails] = useState(restoreBooking?.route ? { route: restoreBooking.route } : null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const isAdmin = user?.role === "admin";
+  const journey = useMemo(() => selectedTrain ? ({
+    schedule_id: selectedTrain.schedule_id,
+    train_id: selectedTrain.train_id,
+    date,
+    from_station_id: selectedTrain.from_station_id,
+    to_station_id: selectedTrain.to_station_id,
+    from_name: from,
+    to_name: to,
+  }) : null, [selectedTrain, date, from, to]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
 
     setError("");
     setTrains([]);
+    setSelectedTrain(null);
+    setDetails(null);
 
     if (!from || !to || !date) {
       setError("Please enter From, To and Journey Date.");
@@ -615,8 +629,8 @@ function Dashboard() {
         token
       );
       setDetails(data);
-    } catch (error) {
-      setDetailsError(error.message);
+    } catch {
+      setDetailsError("Could not load train details. Refresh your search and try again.");
     } finally {
       setDetailsLoading(false);
     }
@@ -867,10 +881,12 @@ function Dashboard() {
         {selectedTrain && (
           <section className="train-details-section">
             <div className="section-heading">
-              <h2>{selectedTrain.train_name} details</h2>
-              <button className="details-button" onClick={() => setSelectedTrain(null)}>
-                Close
-              </button>
+              <div>
+                <p className="dashboard-small-title">TRAIN DETAILS</p>
+                <h2>{selectedTrain.train_name}</h2>
+                <p>{from} → {to} · {date}</p>
+              </div>
+              <button className="details-button" onClick={() => setSelectedTrain(null)}>Close</button>
             </div>
 
             {detailsLoading && <p>Loading train details...</p>}
@@ -878,23 +894,21 @@ function Dashboard() {
 
             {details && (
               <>
-                <h3>Route</h3>
-                <p>
-                  {details.route.map((station) => station.station_name).join(" → ")}
-                </p>
-
-                <h3>Coach availability and fares</h3>
-                <div className="train-results">
-                  {details.types.map((type) => (
-                    <div className="train-card" key={type.coach_type}>
-                      <h3>{type.coach_type}</h3>
-                      <p>Fare: {type.price ?? "N/A"}</p>
-                      <p>Available: {type.available_count}</p>
-                      <p>Booked: {type.booked_count}</p>
-                      <p>Pending: {type.pending_count}</p>
-                    </div>
-                  ))}
+                <div className="train-detail-overview">
+                  <div>
+                    <span>Route</span>
+                    <strong>{details.route.map((station) => station.station_name).join(" → ")}</strong>
+                  </div>
+                  <div>
+                    <span>Departure</span>
+                    <strong>{selectedTrain.departure_from_source || "Time unavailable"}</strong>
+                  </div>
+                  <div>
+                    <span>Arrival</span>
+                    <strong>{selectedTrain.arrival_at_destination || "Time unavailable"}</strong>
+                  </div>
                 </div>
+                {journey && <SeatBookingPanel train={selectedTrain} details={details} journey={journey} token={token} />}
               </>
             )}
           </section>

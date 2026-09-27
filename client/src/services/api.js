@@ -219,6 +219,73 @@ export const getTrainDetails = async (trainId, from, to, date, token) => {
   return data;
 };
 
+const bookingRequest = async (path, token, options = {}) => {
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    const error = new Error(data.error || "Booking request failed");
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+};
+
+// Passenger booking endpoints mounted by the existing backend under /api.
+export const getAvailableSeats = (journey) => {
+  const params = new URLSearchParams({
+    schedule_id: journey.schedule_id,
+    from_station_id: journey.from_station_id,
+    to_station_id: journey.to_station_id,
+  });
+  return bookingRequest(`/seats?${params.toString()}`);
+};
+
+export const lockSeat = (journey, seatId, token) =>
+  bookingRequest("/locks", token, {
+    method: "POST",
+    body: JSON.stringify({ ...journey, seat_id: seatId }),
+  });
+
+export const unlockSeat = (lockId, token) =>
+  bookingRequest(`/locks/${lockId}`, token, { method: "DELETE" });
+
+export const getUserActiveLocks = (journey, token) => {
+  const params = new URLSearchParams({
+    schedule_id: journey.schedule_id,
+    from_station_id: journey.from_station_id,
+    to_station_id: journey.to_station_id,
+  });
+  return bookingRequest(`/locks?${params.toString()}`, token);
+};
+
+export const validateSeatSelection = (journey, seatIds, token) =>
+  bookingRequest("/selection/validate", token, {
+    method: "POST",
+    body: JSON.stringify({ ...journey, seat_ids: seatIds }),
+  });
+
+export const createBooking = (journey, seatIds, token) =>
+  bookingRequest("/bookings", token, {
+    method: "POST",
+    body: JSON.stringify({ ...journey, seat_ids: seatIds }),
+  });
+
+export const confirmBookingPayment = (ticketId, method, token) =>
+  bookingRequest(`/bookings/${ticketId}/payment`, token, {
+    method: "POST",
+    body: JSON.stringify({ method }),
+  });
+
+export const getTicket = (ticketId, token) =>
+  bookingRequest(`/tickets/${ticketId}`, token);
+
 
 export const addCoach = async (train_id,coach_name,seats,type,token ) => {
   const response = await fetch(`${API_URL}/trains/addCoach`, {
@@ -402,4 +469,3 @@ export const deleteStation = (
     token
   );
 };
-

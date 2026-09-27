@@ -712,10 +712,14 @@ const updateSchedule = async(train_id, route_id, date, starting_time, station_id
 
 const findTrainsByRoute = async (from, to, date) => {
     const qTrains = `
-    SELECT t.train_id,
-    t.train_name,
+    SELECT
+      t.train_id,
+      t.train_name,
       t.route_id,
-      rs1.departure_time AS departure_from_source, 
+      sch.schedule_id,
+      rs1.station_id AS from_station_id,
+      rs2.station_id AS to_station_id,
+      rs1.departure_time AS departure_from_source,
       rs2.arrival_time AS arrival_at_destination
 
       FROM train t
@@ -763,6 +767,7 @@ const showTrainDetails = async (train_id, from, to, date) => {
     JOIN route_station rs ON rs.route_id = t.route_id
     JOIN station s on rs.station_id = s.station_id
     WHERE train_id = $1
+    ORDER BY rs.sequence_no
     `;
     const qTypes = `
     WITH journey_details AS (

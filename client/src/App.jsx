@@ -12,6 +12,8 @@ import AddTrain from "./pages/AddTrain";
 import AddCoach from "./pages/AddCoach";
 import DeleteAdmin from "./pages/DeleteAdmin";
 import AdminManagement from "./pages/AdminManagement";
+import ConfirmationPage from "./pages/ConfirmationPage";
+import TicketPage from "./pages/TicketPage";
 
 function App() {
   return (
@@ -24,6 +26,9 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         <Route path="/signup" element={<Signup />} />
+
+        <Route path="/booking/confirm" element={<ConfirmationPage />} />
+        <Route path="/booking/ticket/:ticketId" element={<TicketPage />} />
 
         <Route
           path="/dashboard"
