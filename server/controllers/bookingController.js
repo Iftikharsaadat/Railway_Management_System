@@ -92,7 +92,24 @@ exports.ticketPdf = async (req,res) => {
     if (!userId(req) || !id(req.params.ticket_id)) return res.status(400).json({error:'Valid ticket_id and authenticated account are required.'});
     const ticket=await bookingService.getTicket(userId(req),id(req.params.ticket_id));
     if (ticket.status !== 'booked' || ticket.payment_status !== 'paid') return res.status(409).json({error:'Ticket is not confirmed and paid.'});
-    const lines=[`RAILWAY TICKET #${ticket.ticket_id}`,`Passenger: ${ticket.purchaser_name}`,`Train: ${ticket.train_name}`,`Journey: ${ticket.from_station} to ${ticket.to_station}`,`Date: ${String(ticket.date).slice(0,10)} ${ticket.starting_time || ''}`,`Seats: ${ticket.seats.map(s=>`${s.coach}-${s.seat_number} (${s.seat_type})`).join(', ')}`,`Total: ${ticket.amount}`,`Payment: ${ticket.payment_status} (${ticket.method || ''})`];
-    res.setHeader('Content-Type','application/pdf'); res.setHeader('Content-Disposition',`attachment; filename="ticket-${ticket.ticket_id}.pdf"`); res.send(makePdf(lines));
+    const lines = [
+      `RAILWAY TICKET #${ticket.ticket_id}`,
+      `Passenger: ${ticket.purchaser_name}`,
+      `Train: ${ticket.train_name}`,
+      `Journey: ${ticket.from_station} to ${ticket.to_station}`,
+      `Date: ${String(ticket.date).slice(0, 10)} ${ticket.starting_time || ''}`,
+      `Seats: ${ticket.seats
+        .map(seat => `${seat.coach}-${seat.seat_number} (${seat.seat_type})`)
+        .join(', ')}`,
+      `Total: ${ticket.amount}`,
+      `Payment: ${ticket.payment_status} (${ticket.method || ''})`
+    ];
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="ticket-${ticket.ticket_id}.pdf"`
+    );
+    res.send(makePdf(lines));
   } catch(error) { res.status(error.statusCode || 500).json({error:error.statusCode ? error.message : 'Internal Server Error'}); }
 };
