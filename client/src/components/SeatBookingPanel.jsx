@@ -30,7 +30,7 @@ function SeatBookingPanel({ train, details, journey, token }) {
   const refresh = useCallback(async () => {
     try {
       const [availability, ownedLocks] = await Promise.all([
-        getAvailableSeats(journey),
+        getAvailableSeats(journey, token),
         getUserActiveLocks(journey, token),
       ]);
       setSeats(availability.seats || []);

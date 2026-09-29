@@ -84,8 +84,10 @@ export const searchTrains = async (from, to, date, token) => {
   return data;
 };
 
-export const getStations = async () => {
-  const response = await fetch(`${API_URL}/trains/stations`);
+export const getStations = async (token) => {
+  const response = await fetch(`${API_URL}/trains/stations`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "Failed to load stations");
   return data;
@@ -245,13 +247,13 @@ const bookingRequest = async (path, token, options = {}) => {
 };
 
 // Passenger booking endpoints mounted by the existing backend under /api.
-export const getAvailableSeats = (journey) => {
+export const getAvailableSeats = (journey, token) => {
   const params = new URLSearchParams({
     schedule_id: journey.schedule_id,
     from_station_id: journey.from_station_id,
     to_station_id: journey.to_station_id,
   });
-  return bookingRequest(`/seats?${params.toString()}`);
+  return bookingRequest(`/seats?${params.toString()}`, token);
 };
 
 export const lockSeat = (journey, seatId, token) =>

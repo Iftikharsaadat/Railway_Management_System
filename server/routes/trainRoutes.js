@@ -4,6 +4,8 @@ const trainController = require("../controllers/trainController");
 const verifyToken = require("../middlewares/authMiddleware");
 const adminOnly = require("../middlewares/adminMiddleware");
 
+router.use(verifyToken);
+
 router.post("/addTrain", verifyToken, adminOnly, trainController.addTrain);
 router.post("/addRoute", verifyToken, adminOnly, trainController.addRoute);
 router.post("/addStation", verifyToken, adminOnly, trainController.addStation);

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -16,6 +16,20 @@ import ConfirmationPage from "./pages/ConfirmationPage";
 import TicketPage from "./pages/TicketPage";
 import MyTickets from "./pages/MyTickets";
 
+function RequireAuth({ children, role }) {
+  const token = localStorage.getItem("token");
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem("user"));
+  } catch {
+    user = null;
+  }
+
+  if (!token || !user) return <Navigate to="/login" replace />;
+  if (role && user.role !== role) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -28,40 +42,40 @@ function App() {
 
         <Route path="/signup" element={<Signup />} />
 
-        <Route path="/booking/confirm" element={<ConfirmationPage />} />
-        <Route path="/booking/ticket/:ticketId" element={<TicketPage />} />
-        <Route path="/my-tickets" element={<MyTickets />} />
+        <Route path="/booking/confirm" element={<RequireAuth><ConfirmationPage /></RequireAuth>} />
+        <Route path="/booking/ticket/:ticketId" element={<RequireAuth><TicketPage /></RequireAuth>} />
+        <Route path="/my-tickets" element={<RequireAuth><MyTickets /></RequireAuth>} />
 
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={<RequireAuth><Dashboard /></RequireAuth>}
         />
 
         {/* ADMIN ROUTES */}
 
         <Route
           path="/admin/add-station"
-          element={<AddStation />}
+          element={<RequireAuth role="admin"><AddStation /></RequireAuth>}
         />
 
         <Route
           path="/admin/add-route"
-          element={<AddRoute />}
+          element={<RequireAuth role="admin"><AddRoute /></RequireAuth>}
         />
 
         <Route
           path="/admin/add-station-to-route"
-          element={<AddStationToRoute />}
+          element={<RequireAuth role="admin"><AddStationToRoute /></RequireAuth>}
         />
 
         <Route
           path="/admin/add-train"
-          element={<AddTrain />}
+          element={<RequireAuth role="admin"><AddTrain /></RequireAuth>}
         />
 
         <Route
           path="/admin/add-coach"
-          element={<AddCoach />}
+          element={<RequireAuth role="admin"><AddCoach /></RequireAuth>}
         />
 
         <Route
@@ -69,11 +83,11 @@ function App() {
           element={<Home />}
         />
 
-        <Route path="/admin/delete" element={<DeleteAdmin />} />
+        <Route path="/admin/delete" element={<RequireAuth role="admin"><DeleteAdmin /></RequireAuth>} />
 
-        <Route path="/admin/manage" element={<AdminManagement />} />
-        <Route path="/admin/manage/route/:routeId" element={<AdminManagement />} />
-        <Route path="/admin/manage/train/:trainId/coaches" element={<AdminManagement />} />
+        <Route path="/admin/manage" element={<RequireAuth role="admin"><AdminManagement /></RequireAuth>} />
+        <Route path="/admin/manage/route/:routeId" element={<RequireAuth role="admin"><AdminManagement /></RequireAuth>} />
+        <Route path="/admin/manage/train/:trainId/coaches" element={<RequireAuth role="admin"><AdminManagement /></RequireAuth>} />
 
       </Routes>
 

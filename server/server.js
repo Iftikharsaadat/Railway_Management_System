@@ -6,6 +6,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/authRoutes"); // import the login and reg route
 const trainRoutes = require("./routes/trainRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
+const verifyToken = require("./middlewares/authMiddleware");
 
 const app = express();
 
@@ -22,11 +23,11 @@ app.use(express.json());//sob request egular moddho diye asbe
 app.use("/api/auth", authRoutes); //jesob request /api/auth diye asbe segula authroutes er route diye asbe
 
 // Test route
-app.get("/", (req, res) => {
+app.get("/", verifyToken, (req, res) => {
   res.send("Railway API Running");
 });
 
-app.get("/test-db", async (req, res) => {
+app.get("/test-db", verifyToken, async (req, res) => {
   const pool = require("./db");
   try {
     const result = await pool.query("SELECT NOW()");

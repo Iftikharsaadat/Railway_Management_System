@@ -584,7 +584,7 @@ function Dashboard() {
 
   useEffect(() => {
     let active = true;
-    getStations()
+    getStations(token)
       .then((data) => { if (active) setStations(data.stations || []); })
       .catch((requestError) => { if (active) setError(requestError.message); });
     return () => { active = false; };
