@@ -23,6 +23,7 @@ router.put("/updateCoach/:coachId", verifyToken, adminOnly, trainController.upda
 router.put("/updateSchedule/:scheduleId", verifyToken, adminOnly, trainController.updateSchedule);
 router.get("/admin/trains", verifyToken, adminOnly, trainController.showTrainsAdmin);
 router.get("/admin/stations", verifyToken, adminOnly, trainController.showStationsAdmin);
+router.get("/stations", trainController.listStations);
 router.get("/admin/trains/:train_id/coaches", verifyToken, adminOnly, trainController.showCoachesAdmin);
 router.get("/admin/schedules/:schedule_id", verifyToken, adminOnly, trainController.showSchedule);
 router.get("/admin/schedules", verifyToken, adminOnly, trainController.showSchedulesAdmin);

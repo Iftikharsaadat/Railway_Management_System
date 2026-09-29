@@ -1,7 +1,23 @@
 const pool = require('../db');
 
+const withTransaction = async (callback) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 const addTrain = async (trainName, routeId, offDay) => {
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
     `INSERT INTO train (train_name, route_id, off_day)
      VALUES ($1, $2, $3)
      RETURNING train_id, train_name, route_id, off_day`,
@@ -9,16 +25,19 @@ const addTrain = async (trainName, routeId, offDay) => {
     );
 
     return result.rows[0];
+    });
 };
 
 const addStation = async(station_name,city) => {
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
        `INSERT INTO station (station_name, city)
         VALUES ($1, $2)
         RETURNING *;`,
         [station_name, city]
     );
     return result.rows[0];
+    });
   }
 
 const addRoute = async(start_station_id, end_station_id, stations = []) => {
@@ -27,36 +46,22 @@ const addRoute = async(start_station_id, end_station_id, stations = []) => {
     try {
         await client.query('BEGIN');
 
-        const routeResult = await client.query(
-           `INSERT INTO route (start_station_id, end_station_id)
-            VALUES ($1, $2)
-            RETURNING *;`,
-            [start_station_id, end_station_id]
+        await client.query(
+          'CALL create_route_with_stations($1, $2, $3::jsonb)',
+          [start_station_id, end_station_id, JSON.stringify(stations)]
         );
 
+        const routeResult = await client.query(
+          `SELECT * FROM route WHERE route_id = currval(pg_get_serial_sequence('route', 'route_id')::regclass)`
+        );
         const route = routeResult.rows[0];
-        const routeStations = [];
-
-        for (const station of stations) {
-            const stationResult = await client.query(
-               `INSERT INTO route_station
-                (route_id, station_id, sequence_no, arrival_time, departure_time, distance_km)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING *;`,
-                [
-                    route.route_id,
-                    station.station_id,
-                    station.sequence_no,
-                    station.arrival_time ?? null,
-                    station.departure_time ?? null,
-                    station.distance_km
-                ]
-            );
-            routeStations.push(stationResult.rows[0]);
-        }
+        const stationResult = await client.query(
+          `SELECT * FROM route_station WHERE route_id = $1 ORDER BY sequence_no`,
+          [route.route_id]
+        );
 
         await client.query('COMMIT');
-        return { route, routeStations };
+        return { route, routeStations: stationResult.rows };
     } catch (error) {
         await client.query('ROLLBACK');
         throw error;
@@ -257,7 +262,8 @@ const addCoach = async(train_id, coach_name, seats, type) => {
 }
 
 const addSeat = async(coach_id, seat_number, direction, reservation_status) => {
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
        `INSERT INTO seat
         (coach_id, seat_number, direction, reservation_status)
         VALUES ($1, $2, $3, COALESCE($4, 'available'))
@@ -265,9 +271,11 @@ const addSeat = async(coach_id, seat_number, direction, reservation_status) => {
         [coach_id, seat_number, direction, reservation_status]
     );
     return result.rows[0];
+    });
 }
 const addTrackingTime = async(schedule_id, station_id, expected_time, status) => {
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
        `INSERT INTO train_tracking
         (schedule_id, station_id, expected_time, status)
         VALUES ($1, $2, $3, $4)
@@ -275,10 +283,12 @@ const addTrackingTime = async(schedule_id, station_id, expected_time, status) =>
         [schedule_id, station_id, expected_time, status]
     );
     return result.rows[0];
+    });
 }
 
   const addSchedule = async(train_id, route_id, date, starting_time, station_id) => {
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
       `INSERT INTO schedule
       (train_id, route_id, date, starting_time, station_id)
       VALUES ($1, $2, $3, $4, $5)
@@ -286,10 +296,12 @@ const addTrackingTime = async(schedule_id, station_id, expected_time, status) =>
       [train_id, route_id, date, starting_time ?? null, station_id]
     );
     return result.rows[0];
+    });
   }
 
 const updateTrainTracking = async(coordinates, actual_time, delay_minutes, status, tracking_id) => {
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
        `UPDATE train_tracking
         SET coordinates = $1,
             actual_time = $2,
@@ -300,10 +312,12 @@ const updateTrainTracking = async(coordinates, actual_time, delay_minutes, statu
         [coordinates, actual_time, delay_minutes, status, tracking_id]
     );
     return result.rows[0];
+    });
 }
 
 const updateTrain = async(train_name, off_day, train_id) =>{
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
         `UPDATE train
         SET
             train_name = COALESCE($1, train_name),
@@ -312,10 +326,12 @@ const updateTrain = async(train_name, off_day, train_id) =>{
         RETURNING *`, [train_name, off_day, train_id]
     )
     return result.rows[0];
+    });
 }
 
 const updateStation = async(station_name, city, station_id) =>{
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
         `UPDATE station
         SET
             station_name = COALESCE($1, station_name),
@@ -324,6 +340,7 @@ const updateStation = async(station_name, city, station_id) =>{
         RETURNING *`, [station_name, city, station_id]
     );
     return result.rows[0];
+    });
 }
 
 const updateRouteStation = async (
@@ -455,7 +472,8 @@ const updateRoute = async(route_id, stations) =>{
 }
 
 const updateCoach = async(coach_name, seats, type, coach_id) =>{
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
         `UPDATE coach
         SET
             coach_name = COALESCE($1, coach_name),
@@ -465,10 +483,12 @@ const updateCoach = async(coach_name, seats, type, coach_id) =>{
         RETURNING *`, [coach_name, seats, type, coach_id]
     );
     return result.rows[0];
+    });
 }
 
 const updateSchedule = async(train_id, route_id, date, starting_time, station_id, schedule_id) =>{
-    const result = await pool.query(
+    return withTransaction(async (client) => {
+    const result = await client.query(
         `UPDATE schedule
         SET
             train_id = COALESCE($1, train_id),
@@ -480,6 +500,7 @@ const updateSchedule = async(train_id, route_id, date, starting_time, station_id
         RETURNING *`, [train_id, route_id, date, starting_time, station_id, schedule_id]
     );
     return result.rows[0];
+    });
 }
 
   const showTrainsAdmin = async (search = '') => {

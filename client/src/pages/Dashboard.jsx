@@ -544,9 +544,9 @@
 
 
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getTrainDetails, searchTrains } from "../services/api";
+import { getStations, getTrainDetails, searchTrains } from "../services/api";
 import SeatBookingPanel from "../components/SeatBookingPanel";
 
 function Dashboard() {
@@ -560,6 +560,8 @@ function Dashboard() {
   const [from, setFrom] = useState(restoreBooking?.journey.from_name || "");
   const [to, setTo] = useState(restoreBooking?.journey.to_name || "");
   const [date, setDate] = useState(restoreBooking?.journey.date || "");
+  const [stations, setStations] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const [trains, setTrains] = useState(restoreBooking?.train ? [restoreBooking.train] : []);
   const [selectedTrain, setSelectedTrain] = useState(restoreBooking?.train || null);
@@ -580,6 +582,14 @@ function Dashboard() {
     to_name: to,
   }) : null, [selectedTrain, date, from, to]);
 
+  useEffect(() => {
+    let active = true;
+    getStations()
+      .then((data) => { if (active) setStations(data.stations || []); })
+      .catch((requestError) => { if (active) setError(requestError.message); });
+    return () => { active = false; };
+  }, []);
+
   const handleSearch = async (e) => {
     e.preventDefault();
 
@@ -587,6 +597,7 @@ function Dashboard() {
     setTrains([]);
     setSelectedTrain(null);
     setDetails(null);
+    setHasSearched(false);
 
     if (!from || !to || !date) {
       setError("Please enter From, To and Journey Date.");
@@ -598,7 +609,8 @@ function Dashboard() {
     try {
       const data = await searchTrains(from, to, date, token);
 
-    setTrains(data.availableTrains || []);
+      setTrains(data.availableTrains || []);
+      setHasSearched(true);
 
     } catch (error) {
       setError(error.message);
@@ -668,6 +680,10 @@ function Dashboard() {
             </span>
           </div>
 
+          <button type="button" className="ticket-nav-button" onClick={() => navigate("/my-tickets")}>
+            My Tickets
+          </button>
+
           <button
             className="logout-button"
             onClick={handleLogout}
@@ -721,12 +737,13 @@ function Dashboard() {
 
               <label>From</label>
 
-              <input
-                type="text"
-                placeholder="Departure station"
+              <select
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-              />
+              >
+                <option value="">Select departure station</option>
+                {stations.map((station) => <option key={station.station_id} value={station.station_name}>{station.station_name}{station.city ? ` · ${station.city}` : ""}</option>)}
+              </select>
 
             </div>
 
@@ -735,12 +752,13 @@ function Dashboard() {
 
               <label>To</label>
 
-              <input
-                type="text"
-                placeholder="Destination station"
+              <select
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-              />
+              >
+                <option value="">Select destination station</option>
+                {stations.map((station) => <option key={station.station_id} value={station.station_name}>{station.station_name}{station.city ? ` · ${station.city}` : ""}</option>)}
+              </select>
 
             </div>
 
@@ -914,151 +932,31 @@ function Dashboard() {
           </section>
         )}
 
-
-        {/* ADMIN PANEL */}
-        {isAdmin && (
-
-          <section className="admin-section">
-
-            <div className="section-heading">
-
-              <div>
-                <p className="admin-label">
-                  ADMINISTRATION
-                </p>
-
-                <h2>Admin Controls</h2>
-
-                <p>
-                  Manage trains, stations and coaches.
-                </p>
-              </div>
-
-            </div>
-
-
-            <div className="admin-section">
-
-  <h2>Admin Panel</h2>
-
-  <div className="admin-grid">
-
-    <a
-      href="/admin/manage"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🛠️
-      </div>
-
-      <h3>Management Center</h3>
-
-      <p>
-        Modify trains, schedules and stations.
-      </p>
-    </a>
-
-    <a
-      href="/admin/add-train"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🚆
-      </div>
-
-      <h3>Add Train</h3>
-
-      <p>
-        Add a new train to a route.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/add-station"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🚉
-      </div>
-
-      <h3>Add Station</h3>
-
-      <p>
-        Create a new railway station.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/add-route"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🛤️
-      </div>
-
-      <h3>Add Route</h3>
-
-      <p>
-        Create a railway route.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/add-station-to-route"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        📍
-      </div>
-
-      <h3>Add Station To Route</h3>
-
-      <p>
-        Add a station to an existing route.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/add-coach"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🚃
-      </div>
-
-      <h3>Add Coach</h3>
-
-      <p>
-        Add coach and generate seats.
-      </p>
-    </a>
-
-
-    <a
-      href="/admin/delete"
-      className="admin-card"
-    >
-      <div className="admin-card-icon">
-        🗑️
-      </div>
-
-      <h3>Delete Operations</h3>
-
-      <p>
-        Delete train, coach, route, schedule or station.
-      </p>
-    </a>
-
-  </div>
-
-</div>
-
+        {hasSearched && !loading && !error && trains.length === 0 && (
+          <section className="results-section no-trains-message" role="status">
+            <h2>No trains available</h2>
+            <p>No trains were found for this route and date. Try different stations or another date.</p>
           </section>
+        )}
 
+
+        {isAdmin && (
+          <section className="admin-section">
+            <div className="section-heading">
+              <div>
+                <p className="admin-label">ADMINISTRATION</p>
+                <h2>Management Center</h2>
+                <p>Manage trains, schedules, stations, and routes.</p>
+              </div>
+            </div>
+            <div className="admin-grid">
+              <a href="/admin/manage" className="admin-card">
+                <div className="admin-card-icon">🛠️</div>
+                <h3>Management Center</h3>
+                <p>Open railway management tools.</p>
+              </a>
+            </div>
+          </section>
         )}
 
       </main>

@@ -209,7 +209,7 @@ function BookingMessage({ title, message, action }) {
         <h1>{title}</h1>
         <p>{message}</p>
         {action}
-        <Link className="quiet-link" to="/">Return home</Link>
+        <Link className="quiet-link" to="/dashboard">Return home</Link>
       </section>
     </main>
   );

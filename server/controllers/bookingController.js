@@ -59,6 +59,16 @@ exports.ticket = (req,res) => respond(res, async () => {
   return bookingService.getTicket(userId(req),id(req.params.ticket_id));
 });
 
+exports.myTickets = (req,res) => respond(res, async () => {
+  if (!userId(req)) throw Object.assign(new Error('Valid authenticated account required.'),{statusCode:401});
+  return bookingService.getMyTickets(userId(req));
+});
+
+exports.cancelTicket = (req,res) => respond(res, async () => {
+  if (!userId(req) || !id(req.params.ticket_id)) throw Object.assign(new Error('Valid ticket_id and authenticated account are required.'),{statusCode:400});
+  return bookingService.cancelTicket(userId(req), id(req.params.ticket_id));
+});
+
 const makePdf = lines => {
   const esc = text => String(text ?? '').replace(/[^\x20-\x7E]/g,'?').replace(/([\\()])/g,'\\$1');
   const content = `BT\n/F1 12 Tf\n50 790 Td\n${lines.map((line,i)=>`${i ? '0 -22 Td\n' : ''}(${esc(line)}) Tj`).join('\n')}\nET`;

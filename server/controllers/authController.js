@@ -33,10 +33,21 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new account
-    const result = await pool.query(
-      "INSERT INTO account (nid, name, password, phone ,role) VALUES ($1, $2, $3, $4, $5) RETURNING account_id, nid, name,phone",
-      [nid, name, hashedPassword, phone, userRole]
-    );
+    const client = await pool.connect();
+    let result;
+    try {
+      await client.query('BEGIN');
+      result = await client.query(
+        "INSERT INTO account (nid, name, password, phone ,role) VALUES ($1, $2, $3, $4, $5) RETURNING account_id, nid, name,phone",
+        [nid, name, hashedPassword, phone, userRole]
+      );
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
     res.status(201).json({
       message: "Registration successful",

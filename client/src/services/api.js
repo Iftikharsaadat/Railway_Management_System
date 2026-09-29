@@ -84,6 +84,13 @@ export const searchTrains = async (from, to, date, token) => {
   return data;
 };
 
+export const getStations = async () => {
+  const response = await fetch(`${API_URL}/trains/stations`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Failed to load stations");
+  return data;
+};
+
 
 // =============================
 // ADMIN API FUNCTIONS
@@ -285,6 +292,12 @@ export const confirmBookingPayment = (ticketId, method, token) =>
 
 export const getTicket = (ticketId, token) =>
   bookingRequest(`/tickets/${ticketId}`, token);
+
+export const getMyTickets = (token) =>
+  bookingRequest("/my-tickets", token);
+
+export const cancelMyTicket = (ticketId, token) =>
+  bookingRequest(`/tickets/${ticketId}/cancel`, token, { method: "POST" });
 
 
 export const addCoach = async (train_id,coach_name,seats,type,token ) => {

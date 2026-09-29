@@ -995,6 +995,18 @@ a {
   gap: 20px;
 }
 
+.ticket-nav-button {
+  padding: 9px 13px;
+  border: 1px solid #cdd8dd;
+  border-radius: 8px;
+  background: #fff;
+  color: #24343c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .user-info {
   display: flex;
   flex-direction: column;
@@ -1112,7 +1124,8 @@ a {
   margin-bottom: 8px;
 }
 
-.search-field input {
+.search-field input,
+.search-field select {
   width: 100%;
   height: 48px;
 
@@ -1126,10 +1139,21 @@ a {
   background: white;
 }
 
-.search-field input:focus {
+.search-field input:focus,
+.search-field select:focus {
   border-color: #17202a;
   box-shadow: 0 0 0 3px rgba(23, 32, 42, 0.06);
 }
+
+.no-trains-message {
+  padding: 22px 24px;
+  border: 1px solid #dce3e6;
+  border-radius: 10px;
+  background: #fff;
+  color: #34434c;
+}
+.no-trains-message h2 { margin: 0 0 6px; }
+.no-trains-message p { margin: 0; color: #66747c; }
 
 .search-button {
   height: 48px;
@@ -1648,7 +1672,6 @@ a {
 .coach-picker-header, .booking-summary-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .coach-picker-header h3, .booking-summary-title h3 { margin-bottom: 5px; }
 .coach-picker-header p { color: #71808b; font-size: 13px; }
-.lock-countdown { flex: none; padding: 9px 12px; border-radius: 8px; background: #fff4dc; color: #765111; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .coach-picker { display: flex; gap: 10px; overflow-x: auto; padding: 16px 1px 20px; }
 .coach-option { display: grid; flex: 0 0 auto; gap: 5px; min-width: 145px; padding: 12px 16px; border: 1px solid #dce3e6; border-radius: 8px; color: #28343c; background: #fff; text-align: left; cursor: pointer; }
 .coach-option span { color: #75828a; font-size: 11px; }
@@ -1673,7 +1696,7 @@ a {
 .back-direction { border-top: 1px solid #d9e0e3; }
 .coach-seat-interior { padding: 15px clamp(12px, 4vw, 36px); }
 .seat-grid { display: grid; gap: 9px; }
-.seat-row { display: grid; grid-template-columns: repeat(2, minmax(48px, 1fr)) 30px repeat(2, minmax(48px, 1fr)); gap: 8px; align-items: center; }
+.seat-row { display: grid; grid-template-columns: repeat(2, minmax(48px, 1fr)) 64px repeat(2, minmax(48px, 1fr)); gap: 8px; align-items: center; }
 .seat-aisle { min-height: 37px; border-right: 1px dashed #cbd4d8; border-left: 1px dashed #cbd4d8; }
 .seat-tile { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 38px; padding: 4px 3px; border: 1px solid #a9cfb1; border-radius: 6px; background: #e8f5eb; color: #245b32; font-size: 11px; font-weight: 800; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
 .seat-tile:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 3px 10px #20313b24; }
@@ -1739,6 +1762,22 @@ a {
 .success-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 25px; }
 .success-mark { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: #e4f5e9; color: #28733d; font-size: 27px; font-weight: 800; }
 .ticket-page .booking-page-content { width: min(800px, 92%); }
+.my-ticket-group { margin: 0 0 32px; }
+.my-ticket-group > h2 { margin: 0 0 14px; }
+.my-tickets-empty { padding: 18px; border: 1px dashed #ccd6da; border-radius: 10px; color: #6c7880; background: #fff; }
+.my-ticket-list { display: grid; gap: 14px; }
+.my-ticket-card { padding: 20px; border: 1px solid #dfe6e9; border-radius: 12px; background: #fff; box-shadow: 0 5px 18px #17202a08; }
+.my-ticket-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.my-ticket-topline h3 { margin: 4px 0 0; }
+.my-ticket-status { padding: 6px 9px; border-radius: 999px; background: #e8f5eb; color: #28613a; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.my-ticket-status.status-cancelled { background: #fde9e7; color: #933c34; }
+.my-ticket-status.status-completed { background: #edf2f4; color: #52616a; }
+.my-ticket-route { margin: 17px 0; font-size: 17px; font-weight: 700; }
+.my-ticket-route span { padding: 0 8px; color: #77868d; }
+.my-ticket-facts { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 13px 0; border-top: 1px solid #edf0f1; border-bottom: 1px solid #edf0f1; }
+.my-ticket-facts span { display: grid; gap: 4px; color: #52616a; font-size: 13px; }
+.my-ticket-facts strong { color: #87939a; font-size: 11px; text-transform: uppercase; }
+.my-ticket-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
 .print-ticket { padding: 30px; border: 1px solid #d8e0e4; border-top: 5px solid #173e54; border-radius: 12px; background: #fff; box-shadow: 0 10px 30px #17202a0d; }
 .ticket-status { padding: 7px 10px; border-radius: 999px; background: #e8f5eb; color: #28613a; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .ticket-id-row, .ticket-payment-row { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; margin-top: 14px; border-top: 1px dashed #d6dfe3; border-bottom: 1px dashed #d6dfe3; }
@@ -1774,7 +1813,7 @@ a {
   .seat-layout-and-summary { grid-template-columns: 1fr; }
   .coach-picker-header { align-items: flex-start; flex-direction: column; }
   .coach-seat-interior { padding: 12px 8px; }
-  .seat-row { grid-template-columns: repeat(2, minmax(42px, 1fr)) 18px repeat(2, minmax(42px, 1fr)); gap: 5px; }
+  .seat-row { grid-template-columns: repeat(2, minmax(42px, 1fr)) 40px repeat(2, minmax(42px, 1fr)); gap: 5px; }
   .seat-tile { min-height: 36px; font-size: 10px; }
   .seat-aisle { min-height: 35px; }
   .booking-page-header { height: 62px; padding: 0 5%; }

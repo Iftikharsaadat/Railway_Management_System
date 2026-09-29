@@ -14,6 +14,7 @@ import DeleteAdmin from "./pages/DeleteAdmin";
 import AdminManagement from "./pages/AdminManagement";
 import ConfirmationPage from "./pages/ConfirmationPage";
 import TicketPage from "./pages/TicketPage";
+import MyTickets from "./pages/MyTickets";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
 
         <Route path="/booking/confirm" element={<ConfirmationPage />} />
         <Route path="/booking/ticket/:ticketId" element={<TicketPage />} />
+        <Route path="/my-tickets" element={<MyTickets />} />
 
         <Route
           path="/dashboard"

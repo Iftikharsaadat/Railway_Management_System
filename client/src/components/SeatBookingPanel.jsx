@@ -24,7 +24,6 @@ function SeatBookingPanel({ train, details, journey, token }) {
   const [busySeat, setBusySeat] = useState(null);
   const [loadingSeats, setLoadingSeats] = useState(true);
   const [confirming, setConfirming] = useState(false);
-  const [clockNow, setClockNow] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -82,15 +81,6 @@ function SeatBookingPanel({ train, details, journey, token }) {
   const soonestExpiry = locks.length
     ? Math.min(...locks.map((lock) => new Date(lock.expires_at).getTime()))
     : null;
-  const secondsLeft = soonestExpiry == null || !clockNow
-    ? null
-    : Math.max(0, Math.ceil((soonestExpiry - clockNow) / 1000));
-
-  useEffect(() => {
-    const countdown = window.setInterval(() => setClockNow(Date.now()), 1000);
-    return () => window.clearInterval(countdown);
-  }, []);
-
   useEffect(() => {
     if (soonestExpiry == null) return undefined;
     const expiryRefresh = window.setTimeout(refresh, Math.max(0, soonestExpiry - Date.now()) + 50);
@@ -172,11 +162,6 @@ function SeatBookingPanel({ train, details, journey, token }) {
           <h3>Select a coach</h3>
           <p>Coach availability and fares are refreshed from the railway server.</p>
         </div>
-        {secondsLeft !== null && (
-          <span className="lock-countdown" aria-live="polite">
-            Locks expire in {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
-          </span>
-        )}
       </div>
 
       <div className="coach-picker" role="tablist" aria-label="Train coaches">
@@ -215,7 +200,7 @@ function SeatBookingPanel({ train, details, journey, token }) {
             <div className="coach-seat-shell">
               <div className="coach-direction front-direction">
                 <span>↑</span>
-                <strong>Front / Forward</strong>
+                <strong>Forward</strong>
               </div>
               <div className="coach-seat-interior">
                 <div className="seat-grid" role="group" aria-label={`${selectedCoach} seat layout`}>
@@ -230,7 +215,7 @@ function SeatBookingPanel({ train, details, journey, token }) {
               </div>
               <div className="coach-direction back-direction">
                 <span>↓</span>
-                <strong>Back / Backward</strong>
+                <strong>Backward</strong>
               </div>
             </div>
             {currentCoach && (

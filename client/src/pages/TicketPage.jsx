@@ -81,11 +81,11 @@ function TicketPage() {
             </article>
             <div className="ticket-actions no-print">
               <button type="button" className="booking-confirm-button" onClick={() => window.print()}>Print ticket</button>
-              <Link className="button-link secondary-link" to="/">Return home</Link>
+              <Link className="button-link secondary-link" to="/dashboard">Return home</Link>
             </div>
           </>
         )}
-        {!loading && !ticket && !error && <Link to="/">Return home</Link>}
+        {!loading && !ticket && !error && <Link to="/dashboard">Return home</Link>}
       </div>
     </main>
   );

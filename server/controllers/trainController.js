@@ -449,6 +449,16 @@ const showStationsAdmin = async (req, res) => {
   }
 };
 
+const listStations = async (_req, res) => {
+  try {
+    const stations = await trainService.showStationsAdmin('');
+    res.status(200).json({ stations });
+  } catch (err) {
+    console.error("List Stations Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 const showCoachesAdmin = async (req, res) => {
   try {
     const trainId = parseId(req.params.train_id);
@@ -776,6 +786,7 @@ module.exports = {
   updateSchedule,
   showTrainsAdmin,
   showStationsAdmin,
+  listStations,
   showCoachesAdmin,
   showSchedule,
   showSchedulesAdmin,
