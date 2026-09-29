@@ -28,7 +28,7 @@ function TicketPage() {
   return (
     <main className="booking-page ticket-page">
       <header className="booking-page-header no-print">
-        <Link className="booking-brand" to="/">🚆 Railway<span>Booking</span></Link>
+        <Link className="booking-brand" to="/">🚆 AmarRail</Link>
         <Link className="quiet-link" to="/">Home</Link>
       </header>
       <div className="booking-page-content">

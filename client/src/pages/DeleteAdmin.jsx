@@ -129,7 +129,7 @@ function DeleteAdmin() {
     <div className="dashboard-page">
       <nav className="dashboard-navbar">
         <div className="dashboard-logo">
-          🚆 Railway<span>Booking</span>
+          🚆 AmarRail
         </div>
 
         <button
@@ -210,4 +210,3 @@ function DeleteAdmin() {
 }
 
 export default DeleteAdmin;
-

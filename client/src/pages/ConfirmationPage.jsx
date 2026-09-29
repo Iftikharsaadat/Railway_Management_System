@@ -118,7 +118,7 @@ function ConfirmationPage() {
   return (
     <main className="booking-page">
       <header className="booking-page-header">
-        <Link className="booking-brand" to="/">🚆 Railway<span>Booking</span></Link>
+        <Link className="booking-brand" to="/">🚆 AmarRail</Link>
         <Link className="quiet-link" to="/">Home</Link>
       </header>
       <div className="booking-page-content">

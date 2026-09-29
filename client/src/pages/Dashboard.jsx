@@ -668,7 +668,7 @@ function Dashboard() {
       <nav className="dashboard-navbar">
 
         <div className="dashboard-logo">
-          🚆 Railway<span>Booking</span>
+          🚆 AmarRail
         </div>
 
         <div className="dashboard-user">
@@ -704,7 +704,7 @@ function Dashboard() {
 
           <div>
             <p className="dashboard-small-title">
-              RAILWAY BOOKING SYSTEM
+              AMARRAIL
             </p>
 
             <h1>

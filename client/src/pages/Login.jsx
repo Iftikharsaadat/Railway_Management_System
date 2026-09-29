@@ -37,7 +37,7 @@ function Login() {
     <div className="auth-page">
       <div className="auth-card">
 
-        <h1>Railway Booking</h1>
+        <h1>AmarRail</h1>
         <p className="subtitle">Welcome back!</p>
 
         {error && (
@@ -89,4 +89,3 @@ function Login() {
 }
 
 export default Login;
-

@@ -9,7 +9,7 @@ function Home() {
       <nav className="navbar">
 
         <div className="logo">
-          🚆 Railway<span>Booking</span>
+          🚆 AmarRail
         </div>
 
         {/* <div className="nav-buttons">

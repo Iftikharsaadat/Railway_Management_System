@@ -92,7 +92,7 @@ function MyTickets() {
   return (
     <main className="booking-page my-tickets-page">
       <header className="booking-page-header">
-        <Link className="booking-brand" to="/dashboard">🚆 Railway<span>Booking</span></Link>
+        <Link className="booking-brand" to="/dashboard">🚆 AmarRail</Link>
         <Link className="quiet-link" to="/dashboard">Train search</Link>
       </header>
       <div className="booking-page-content">

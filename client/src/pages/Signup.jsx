@@ -57,7 +57,7 @@ function Signup() {
       <div className="auth-card">
 
         <h1>Create Account</h1>
-        <p className="subtitle">Join Railway Booking</p>
+        <p className="subtitle">Join AmarRail</p>
 
         {error && (
           <div className="error-message">
